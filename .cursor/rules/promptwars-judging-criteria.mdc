@@ -1,0 +1,174 @@
+---
+description: PromptWars judging criteria — target 100% across all categories
+alwaysApply: true
+---
+
+When generating, modifying, or reviewing code, target **100% score in every category**. Treat all six categories as mandatory deliverables, not optional extras.
+
+---
+
+## 1. Problem Statement Alignment (Target: 100%)
+
+Highest priority. Every requirement must be implemented, verifiable, and demo-ready.
+
+Requirements:
+- Fully solve the user's stated problem with zero gaps.
+- Do not introduce features not requested.
+- Handle **all** explicitly mentioned requirements and infer reasonable ones from context.
+- Optimize for user goals, not implementation convenience.
+- Prefer correctness and requirement coverage over shortcuts.
+
+Mandatory checklist before completing any task:
+- [ ] Every acceptance criterion is implemented end-to-end.
+- [ ] Edge cases relevant to the problem are handled (empty input, invalid input, API failure, loading, over-budget, allergy conflicts).
+- [ ] Deliverables match spec: README, `.env.example`, error/loading/empty states, deployment instructions.
+- [ ] Feature behavior is traceable to a requirement (no orphan code).
+
+SmartMeal AI requirement coverage (verify when applicable):
+- 10 preference inputs collected and validated.
+- Breakfast, lunch, dinner plans with dish name, prep time, ingredients, instructions, cost, calories, macros.
+- Consolidated grocery list and ingredient substitutions.
+- Budget feasibility (Within / Slightly Over / Over) with cheaper alternatives and optimized regeneration.
+- Dietary and allergy validation.
+- Responsive UI, dark mode, accessibility.
+
+---
+
+## 2. Code Quality (Target: 100%)
+
+Requirements:
+- Clean, readable, maintainable code with descriptive names.
+- Modular architecture: components, hooks, service layer, shared types, Zod schemas.
+- DRY — extract reusable logic; no copy-paste blocks.
+- Follow language/framework conventions (Next.js App Router, TypeScript strict, Tailwind, Shadcn patterns).
+- Single responsibility per file/function.
+- Strong typing throughout — no `any`, minimal type assertions.
+- Consistent folder structure and import aliases (`@/`).
+- Self-documenting code; comments only for non-obvious business logic.
+
+Mandatory checklist:
+- [ ] No dead code, unused imports, or commented-out blocks.
+- [ ] Error messages are user-friendly and actionable.
+- [ ] API route, service, validation, and UI layers are separated.
+- [ ] Code passes ESLint with no warnings.
+- [ ] Another developer can understand the structure in under 5 minutes.
+
+---
+
+## 3. Security (Target: 100%)
+
+Requirements:
+- Validate **all** external inputs with Zod (client and server).
+- Never expose secrets — API keys server-side only (`OPENAI_API_KEY` in env, never in client bundle).
+- Sanitize and bound string/array inputs (length limits, trim, reject unexpected types).
+- Use safe defaults; fail closed on validation errors.
+- Return generic error messages to clients; log details server-side only.
+- Follow Next.js security best practices (no eval, no dangerouslySetInnerHTML unless sanitized).
+- Minimize attack surface — no unnecessary endpoints or debug routes.
+
+Mandatory checklist:
+- [ ] Request body validated before any AI/external call.
+- [ ] Environment variables documented in `.env.example`, gitignored in `.env.local`.
+- [ ] No secrets in commits, logs, or client-side code.
+- [ ] Rate-limit or guard expensive API routes when feasible.
+- [ ] Allergies and dietary rules enforced in validation layer, not UI-only.
+
+---
+
+## 4. Efficiency (Target: 100%)
+
+Requirements:
+- Avoid unnecessary API calls — batch where possible; do not re-fetch unchanged data.
+- Avoid redundant loops, duplicate validation, or repeated computations.
+- Use efficient algorithms and data structures (O(n) where reasonable).
+- Memoize expensive pure functions; use React `useCallback`/`useMemo` for stable handlers.
+- Lazy-load heavy components when appropriate.
+- Do not sacrifice readability for micro-optimizations.
+- Auto budget-optimization should not loop indefinitely — cap retries.
+
+Mandatory checklist:
+- [ ] Single OpenAI call per generation unless explicit regenerate/optimize.
+- [ ] Budget totals recalculated once server-side, not duplicated client-side.
+- [ ] No N+1 patterns or redundant schema parsing.
+- [ ] Bundle size kept lean — tree-shake unused imports.
+- [ ] Loading states prevent duplicate submissions.
+
+---
+
+## 5. Testing (Target: 100%) — MANDATORY
+
+Testing is **required**, not optional. A solution without tests is incomplete.
+
+Requirements:
+- Add unit tests for all critical pure logic (validators, budget utils, prompt builders, parsers).
+- Add integration tests for API routes (valid request, invalid request, missing env key).
+- Add component tests for form validation and key UI states when feasible.
+- Cover happy path, edge cases, and error paths.
+- Tests must be runnable via `npm test` and pass in CI.
+- Prefer Vitest + React Testing Library for Next.js projects.
+- Mock external services (OpenAI) in tests — never call live APIs in unit tests.
+- Aim for meaningful coverage of business logic, not trivial getters.
+
+Mandatory checklist:
+- [ ] Zod schemas tested with valid and invalid inputs.
+- [ ] `computeBudgetStatus`, `recalculateBudgetAnalysis`, `validateDietaryAndAllergies` have unit tests.
+- [ ] API route returns 400 on bad input, 500 on service failure (mocked).
+- [ ] At least one component test (form submit, error state, or results render).
+- [ ] `npm test` script exists in `package.json` and all tests pass.
+
+When adding or changing logic, **always add or update tests in the same change**.
+
+---
+
+## 6. Accessibility (Target: 100%)
+
+Requirements:
+- Semantic HTML (`main`, `header`, `footer`, `section`, `nav`, `h1`–`h3` hierarchy).
+- Every form input has an associated `<Label htmlFor="...">`.
+- Interactive elements are keyboard accessible (buttons, selects, tabs, theme toggle).
+- ARIA: `aria-label`, `aria-live`, `role="alert"`, `role="status"` for dynamic content.
+- Focus visible on all interactive elements; logical tab order.
+- Color contrast meets WCAG 2.1 AA (4.5:1 text, 3:1 UI components).
+- Respect `prefers-reduced-motion` for animations.
+- Images/icons decorative use `aria-hidden="true"`; meaningful images have `alt`.
+- Error messages linked via `aria-describedby` / `aria-invalid`.
+
+Mandatory checklist:
+- [ ] Page has one `h1`; sections have accessible names (`aria-label` or headings).
+- [ ] Loading/error/empty states announce to screen readers.
+- [ ] Dark mode maintains readable contrast.
+- [ ] No keyboard traps; all actions reachable without a mouse.
+
+---
+
+# Decision Priority
+
+When tradeoffs occur:
+
+1. Problem Statement Alignment
+2. Code Quality
+3. Security
+4. Efficiency
+5. Testing
+6. Accessibility
+
+Never sacrifice a higher-priority category to improve a lower-priority one — except that **Testing and Accessibility are never skipped** even when time is tight; reduce scope elsewhere first.
+
+---
+
+# Pre-Submit Review (Required)
+
+Before returning any solution, verify **all six categories at 100%**:
+
+| Category | Pass criteria |
+|----------|---------------|
+| Problem Statement Alignment | Every requirement implemented and verifiable |
+| Code Quality | Modular, typed, lint-clean, maintainable |
+| Security | Validated inputs, secrets protected, safe errors |
+| Efficiency | No redundant work, optimized critical paths |
+| Testing | Tests added/updated, `npm test` passes |
+| Accessibility | Semantic HTML, ARIA, keyboard, contrast |
+
+If any category fails, fix it before returning the solution.
+
+Return the highest-scoring solution according to this rubric — **targeting 100% in every category**.
