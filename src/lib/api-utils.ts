@@ -10,15 +10,23 @@ export function jsonError(message: string, status = 400) {
   return NextResponse.json({ success: false, error: message }, { status });
 }
 
+function isMongoConnectionError(error: unknown, message: string): boolean {
+  const name = error instanceof Error ? error.name : "";
+  return (
+    message.includes("MONGODB_URI") ||
+    name === "MongoNetworkTimeoutError" ||
+    name === "MongoServerSelectionError" ||
+    (message.includes("ENOTFOUND") && message.includes("mongodb")) ||
+    (message.includes("timed out") && message.includes("connect"))
+  );
+}
+
 function getPublicErrorMessage(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
 
   if (process.env.NODE_ENV === "development") {
-    if (
-      message.includes("MONGODB_URI") ||
-      (message.includes("ENOTFOUND") && message.includes("mongodb"))
-    ) {
-      return "Database connection failed. Update MONGODB_URI in .env with your real Atlas hostname (e.g. cluster0.xxxxx.mongodb.net).";
+    if (isMongoConnectionError(error, message)) {
+      return "Database connection failed. Check MONGODB_URI in .env and add your current IP in MongoDB Atlas → Network Access (or allow 0.0.0.0/0 for local development). Ensure the cluster is not paused.";
     }
     if (message.includes("OPENAI_API_KEY is not configured")) {
       return "OpenAI API key is missing. Set OPENAI_API_KEY in .env.";

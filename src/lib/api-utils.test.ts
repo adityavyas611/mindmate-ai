@@ -43,6 +43,19 @@ describe("handleApiError", () => {
     const body = await response.json();
     expect(body.error).toContain("MONGODB_URI");
   });
+
+  it("returns Atlas network hints for MongoDB timeout in development", async () => {
+    const prev = process.env.NODE_ENV;
+    process.env.NODE_ENV = "development";
+    const error = new Error(
+      "Socket 'secureConnect' timed out after 30003ms (connectTimeoutMS: 30000)"
+    );
+    error.name = "MongoNetworkTimeoutError";
+    const response = handleApiError(error);
+    process.env.NODE_ENV = prev;
+    const body = await response.json();
+    expect(body.error).toContain("Network Access");
+  });
 });
 
 describe("parseUserIdParam", () => {
