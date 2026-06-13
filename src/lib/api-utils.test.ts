@@ -22,12 +22,26 @@ describe("handleApiError", () => {
     expect(body.error).toBe("Invalid field");
   });
 
-  it("returns generic 500 message for unknown errors", async () => {
+  it("returns generic 500 message for unknown errors in production", async () => {
+    const prev = process.env.NODE_ENV;
+    process.env.NODE_ENV = "production";
     const response = handleApiError(new Error("OPENAI_API_KEY is not configured"));
+    process.env.NODE_ENV = prev;
     expect(response.status).toBe(500);
     const body = await response.json();
     expect(body.error).toBe("An unexpected error occurred. Please try again later.");
     expect(body.error).not.toContain("OPENAI");
+  });
+
+  it("returns setup hints for known config errors in development", async () => {
+    const prev = process.env.NODE_ENV;
+    process.env.NODE_ENV = "development";
+    const response = handleApiError(
+      new Error("querySrv ENOTFOUND _mongodb._tcp.cluster.mongodb.net")
+    );
+    process.env.NODE_ENV = prev;
+    const body = await response.json();
+    expect(body.error).toContain("MONGODB_URI");
   });
 });
 

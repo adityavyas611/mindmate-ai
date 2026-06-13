@@ -4,6 +4,13 @@ import { EXAM_TYPES } from "@/lib/utils";
 const trimmedString = (min: number, max: number) =>
   z.string().trim().min(min).max(max);
 
+/** OpenAI JSON often returns null instead of omitting optional fields. */
+const aiString = () => z.string().nullable().transform((v) => v ?? "");
+const aiOptionalString = () =>
+  z.string().nullable().optional().transform((v) => v ?? undefined);
+const aiStringArray = () =>
+  z.array(z.string()).nullable().transform((v) => v ?? []);
+
 export const checkInSchema = z.object({
   userId: z.string().uuid(),
   journalEntry: trimmedString(1, 5000),
@@ -40,38 +47,39 @@ export const profileSchema = z.object({
 });
 
 export const aiAnalysisSchema = z.object({
-  emotionalState: z.string(),
+  emotionalState: aiString(),
   stressLevel: z.enum(["low", "moderate", "high", "severe"]),
   burnoutRisk: z.enum(["low", "moderate", "high", "critical"]),
   motivationLevel: z.enum(["low", "moderate", "high"]),
-  confidenceIndicators: z.string(),
-  negativeSelfTalkPatterns: z.array(z.string()),
-  hiddenStressTriggers: z.array(z.string()),
-  recurringThemes: z.array(z.string()),
-  productivityImpact: z.string(),
-  academicPressureIndicators: z.array(z.string()),
-  personalizedInsights: z.array(z.string()),
-  copingStrategies: z.array(z.string()),
-  encouragement: z.string(),
+  confidenceIndicators: aiString(),
+  negativeSelfTalkPatterns: aiStringArray(),
+  hiddenStressTriggers: aiStringArray(),
+  recurringThemes: aiStringArray(),
+  productivityImpact: aiString(),
+  academicPressureIndicators: aiStringArray(),
+  personalizedInsights: aiStringArray(),
+  copingStrategies: aiStringArray(),
+  encouragement: aiString(),
   wellnessScore: z.number().min(0).max(100),
-  wellnessScoreExplanation: z.string(),
-  improvementSuggestions: z.array(z.string()),
+  wellnessScoreExplanation: aiString(),
+  improvementSuggestions: aiStringArray(),
   stressPredictorScore: z.number().min(0).max(100),
-  stressPredictorExplanation: z.string(),
+  stressPredictorExplanation: aiString(),
   earlyWarning: z
     .object({
       triggered: z.boolean(),
       severity: z.enum(["none", "mild", "moderate", "severe"]),
-      message: z.string(),
+      message: aiString(),
     })
-    .optional(),
-  safetyNote: z.string(),
+    .nullish()
+    .transform((v) => v ?? undefined),
+  safetyNote: aiString(),
 });
 
 export type AIAnalysis = z.infer<typeof aiAnalysisSchema>;
 
 export const mindfulnessExerciseSchema = z.object({
-  title: z.string(),
+  title: aiString(),
   type: z.enum([
     "reset",
     "breathing",
@@ -81,24 +89,24 @@ export const mindfulnessExerciseSchema = z.object({
     "sleep_prep",
   ]),
   durationMinutes: z.number(),
-  instructions: z.array(z.string()),
-  adaptationReason: z.string(),
+  instructions: aiStringArray(),
+  adaptationReason: aiString(),
 });
 
 export type MindfulnessExercise = z.infer<typeof mindfulnessExerciseSchema>;
 
 export const motivationSchema = z.object({
-  affirmation: z.string(),
-  dailyEncouragement: z.string(),
-  progressCelebration: z.string().optional(),
-  milestoneRecognition: z.string().optional(),
+  affirmation: aiString(),
+  dailyEncouragement: aiString(),
+  progressCelebration: aiOptionalString(),
+  milestoneRecognition: aiOptionalString(),
 });
 
 export type MotivationContent = z.infer<typeof motivationSchema>;
 
 export const patternInsightsSchema = z.object({
-  weeklySummary: z.string(),
-  monthlyReport: z.string().optional(),
+  weeklySummary: aiString(),
+  monthlyReport: aiOptionalString(),
   moodTrend: z.enum(["improving", "stable", "declining"]),
   burnoutTrend: z.enum(["improving", "stable", "declining"]),
   anxietyTrend: z.enum(["improving", "stable", "declining"]),
@@ -107,19 +115,19 @@ export const patternInsightsSchema = z.object({
   studyConsistencyTrend: z.enum(["improving", "stable", "declining"]),
   correlations: z.array(
     z.object({
-      relationship: z.string(),
-      insight: z.string(),
+      relationship: aiString(),
+      insight: aiString(),
       strength: z.enum(["weak", "moderate", "strong"]),
     })
   ),
   riskAlerts: z.array(
     z.object({
-      type: z.string(),
-      message: z.string(),
+      type: aiString(),
+      message: aiString(),
       severity: z.enum(["info", "warning", "critical"]),
     })
   ),
-  discoveredPatterns: z.array(z.string()),
+  discoveredPatterns: aiStringArray(),
 });
 
 export type PatternInsights = z.infer<typeof patternInsightsSchema>;

@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { checkInSchema, chatMessageSchema, userIdSchema, profileSchema } from "@/schemas";
+import {
+  checkInSchema,
+  chatMessageSchema,
+  userIdSchema,
+  profileSchema,
+  motivationSchema,
+} from "@/schemas";
 
 const validUserId = "550e8400-e29b-41d4-a716-446655440000";
 
@@ -110,5 +116,18 @@ describe("profileSchema", () => {
         knownStressTriggers: Array.from({ length: 21 }, (_, i) => `trigger-${i}`),
       })
     ).toThrow();
+  });
+});
+
+describe("motivationSchema", () => {
+  it("accepts null for optional celebration fields from OpenAI", () => {
+    const result = motivationSchema.parse({
+      affirmation: "You are capable",
+      dailyEncouragement: "Keep showing up",
+      progressCelebration: null,
+      milestoneRecognition: null,
+    });
+    expect(result.progressCelebration).toBeUndefined();
+    expect(result.milestoneRecognition).toBeUndefined();
   });
 });

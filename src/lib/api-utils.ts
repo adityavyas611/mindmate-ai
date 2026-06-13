@@ -10,6 +10,27 @@ export function jsonError(message: string, status = 400) {
   return NextResponse.json({ success: false, error: message }, { status });
 }
 
+function getPublicErrorMessage(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+
+  if (process.env.NODE_ENV === "development") {
+    if (
+      message.includes("MONGODB_URI") ||
+      (message.includes("ENOTFOUND") && message.includes("mongodb"))
+    ) {
+      return "Database connection failed. Update MONGODB_URI in .env with your real Atlas hostname (e.g. cluster0.xxxxx.mongodb.net).";
+    }
+    if (message.includes("OPENAI_API_KEY is not configured")) {
+      return "OpenAI API key is missing. Set OPENAI_API_KEY in .env.";
+    }
+    if (message.startsWith("OpenAI API error")) {
+      return "OpenAI request failed. Check that OPENAI_API_KEY is valid and billing is enabled.";
+    }
+  }
+
+  return "An unexpected error occurred. Please try again later.";
+}
+
 export function handleApiError(error: unknown) {
   if (error instanceof ZodError) {
     return jsonError(error.errors.map((e) => e.message).join(", "), 422);
@@ -18,7 +39,7 @@ export function handleApiError(error: unknown) {
     return jsonError("Invalid JSON body", 422);
   }
   console.error("[API Error]", error);
-  return jsonError("An unexpected error occurred. Please try again later.", 500);
+  return jsonError(getPublicErrorMessage(error), 500);
 }
 
 export async function parseJsonBody(request: Request) {
