@@ -9,7 +9,7 @@ import type {
   InsightsResponse,
 } from "@/types/api";
 
-const USER_ID_KEY = "mindmate-user-id";
+const USER_ID_KEY = "neurora-user-id";
 
 function getUserId(): string {
   let id = localStorage.getItem(USER_ID_KEY);

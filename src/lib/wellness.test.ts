@@ -4,6 +4,7 @@ import {
   computeBurnoutRiskLevel,
   computeStudyStreak,
   computeLocalTrends,
+  computeLocalRiskAlerts,
 } from "@/lib/wellness";
 import type { HistoricalEntry } from "@/lib/ai/openai";
 
@@ -106,5 +107,22 @@ describe("computeLocalTrends", () => {
       makeEntry({ moodScore: 4 }),
     ];
     expect(computeLocalTrends(entries).moodTrend).toBe("improving");
+  });
+});
+
+describe("computeLocalRiskAlerts", () => {
+  it("returns critical alert for critical burnout", () => {
+    const entries = Array.from({ length: 5 }, () =>
+      makeEntry({ anxietyLevel: 9, energyLevel: 2, sleepHours: 4, studyHours: 12 })
+    );
+    const alerts = computeLocalRiskAlerts(entries, "critical", null);
+    expect(alerts.some((a) => a.severity === "critical")).toBe(true);
+  });
+
+  it("returns alert for severe stress level", () => {
+    const alerts = computeLocalRiskAlerts([makeEntry()], "low", {
+      stressLevel: "severe",
+    });
+    expect(alerts.some((a) => a.message.includes("Severe stress"))).toBe(true);
   });
 });

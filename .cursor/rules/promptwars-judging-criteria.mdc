@@ -24,7 +24,7 @@ Mandatory checklist before completing any task:
 - [ ] Deliverables match spec: README, `.env.example`, error/loading/empty states, deployment instructions.
 - [ ] Feature behavior is traceable to a requirement (no orphan code).
 
-MindMate AI requirement coverage (verify when applicable):
+Neurora requirement coverage (verify when applicable):
 - 10 check-in inputs collected and validated (journal, mood, energy, sleep, study, exam type, days remaining, confidence, anxiety + userId).
 - AI journal analysis with emotional insights, stress/burnout assessment, and wellness score.
 - Emotional insights dashboard with trends, correlations, and risk alerts.

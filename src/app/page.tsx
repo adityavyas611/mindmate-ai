@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { api, useUserId } from "@/hooks/use-user-id";
+import { LoadingState, QueryErrorState } from "@/components/shared/page-components";
 import {
   PenLine,
   Brain,
@@ -19,7 +20,7 @@ import {
 export default function HomePage() {
   const userId = useUserId();
 
-  const { data } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["insights", userId],
     queryFn: () => api.getInsights(userId!) as Promise<{
       wellnessScore: { overall: number };
@@ -76,7 +77,7 @@ export default function HomePage() {
           Survive exam prep without losing yourself
         </h1>
         <p className="mt-4 max-w-2xl text-violet-100 leading-relaxed">
-          MindMate AI helps JEE, NEET, UPSC, CAT, GATE, CUET, and Board Exam students
+          Neurora helps JEE, NEET, UPSC, CAT, GATE, CUET, and Board Exam students
           monitor emotional well-being, detect stress patterns, prevent burnout, and build
           healthy study habits — with an empathetic AI coach by your side.
         </p>
@@ -92,6 +93,17 @@ export default function HomePage() {
           </Button>
         </div>
       </section>
+
+      {userId && isLoading && (
+        <LoadingState message="Loading your wellness snapshot..." />
+      )}
+
+      {userId && isError && (
+        <QueryErrorState
+          message={error instanceof Error ? error.message : undefined}
+          onRetry={() => refetch()}
+        />
+      )}
 
       {data && data.totalCheckIns > 0 && (
         <Card aria-label="Your wellness snapshot">
@@ -146,7 +158,7 @@ export default function HomePage() {
       <Card className="border-dashed">
         <CardContent className="py-6 text-center text-sm text-zinc-500">
           Built for students preparing for high-stakes exams. Your journal is encrypted.
-          No data is shared. MindMate AI is not a therapist — always seek professional help when needed.
+          No data is shared. Neurora is not a therapist — always seek professional help when needed.
         </CardContent>
       </Card>
     </div>

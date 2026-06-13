@@ -82,6 +82,12 @@ export default function MindfulnessPage() {
         </CardContent>
       </Card>
 
+      {mutation.isPending && (
+        <div className="rounded-xl border border-violet-100 bg-violet-50 p-4 text-sm dark:border-violet-900 dark:bg-violet-950/30" role="status" aria-live="polite">
+          Creating your personalized mindfulness exercise...
+        </div>
+      )}
+
       {!exercise && !mutation.isPending && !mutation.error && (
         <EmptyState
           title="Ready when you are"
@@ -95,7 +101,7 @@ export default function MindfulnessPage() {
       )}
 
       {exercise && (
-        <Card aria-live="polite">
+        <Card role="status" aria-live="polite">
           <CardHeader>
             <div className="flex flex-wrap items-center gap-2">
               <CardTitle>{exercise.title}</CardTitle>

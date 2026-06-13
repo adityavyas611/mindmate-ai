@@ -11,9 +11,10 @@ import {
   LoadingState,
   EmptyState,
   AlertBanner,
+  QueryErrorState,
 } from "@/components/shared/page-components";
 import { api, useUserId } from "@/hooks/use-user-id";
-import { ESCALATION_MESSAGE } from "@/lib/utils";
+import { ESCALATION_MESSAGE, shouldShowEscalation } from "@/lib/utils";
 import { severityBadgeVariant } from "@/types/api";
 import { AlertTriangle, Shield, Activity } from "lucide-react";
 
@@ -30,13 +31,28 @@ function riskScore(level: string): number {
 export default function BurnoutPage() {
   const userId = useUserId();
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["insights", userId],
     queryFn: () => api.getInsights(userId!),
     enabled: !!userId,
   });
 
   if (!userId || isLoading) return <LoadingState message="Monitoring burnout risk..." />;
+
+  if (isError) {
+    return (
+      <div>
+        <PageHeader
+          title="Burnout Risk Monitor"
+          description="Early detection and prevention of exam burnout."
+        />
+        <QueryErrorState
+          message={error instanceof Error ? error.message : undefined}
+          onRetry={() => refetch()}
+        />
+      </div>
+    );
+  }
 
   if (!data || data.totalCheckIns === 0) {
     return (
@@ -68,7 +84,11 @@ export default function BurnoutPage() {
         description="Early detection and prevention of exam burnout."
       />
 
-      {latestAnalysis?.earlyWarning?.triggered && (
+      {shouldShowEscalation(latestAnalysis) && (
+        <AlertBanner message={ESCALATION_MESSAGE} severity="critical" />
+      )}
+
+      {latestAnalysis?.earlyWarning?.triggered && !shouldShowEscalation(latestAnalysis) && (
         <AlertBanner
           message={
             latestAnalysis.earlyWarning.severity === "severe"

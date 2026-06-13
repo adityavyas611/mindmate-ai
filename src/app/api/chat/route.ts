@@ -10,6 +10,7 @@ import {
   parseUserIdParam,
   validateUserIdAccess,
   applyRateLimit,
+  parseJsonBody,
 } from "@/lib/api-utils";
 import { mapEntriesForAI } from "@/lib/wellness";
 
@@ -18,8 +19,9 @@ export async function POST(request: NextRequest) {
     const rateLimited = applyRateLimit(request, "chat-post", 20, 60_000);
     if (rateLimited) return rateLimited;
 
-    const body = await request.json();
-    const { userId, message } = chatMessageSchema.parse(body);
+    const parsedBody = await parseJsonBody(request);
+    if ("error" in parsedBody && parsedBody.error) return parsedBody.error;
+    const { userId, message } = chatMessageSchema.parse(parsedBody.body);
 
     const headerUserId = validateUserIdHeader(request);
     const accessError = validateUserIdAccess(headerUserId, userId);

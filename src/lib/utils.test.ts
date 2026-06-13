@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { formatDate, ESCALATION_MESSAGE, average } from "@/lib/utils";
+import { formatDate, ESCALATION_MESSAGE, average, shouldShowEscalation } from "@/lib/utils";
+import type { AIAnalysis } from "@/schemas";
 
 describe("formatDate", () => {
   it("formats ISO date strings", () => {
@@ -22,5 +23,26 @@ describe("average", () => {
 
   it("returns 0 for empty array", () => {
     expect(average([])).toBe(0);
+  });
+});
+
+describe("shouldShowEscalation", () => {
+  it("returns true for severe stress level", () => {
+    expect(
+      shouldShowEscalation({ stressLevel: "severe" } as AIAnalysis)
+    ).toBe(true);
+  });
+
+  it("returns true for severe early warning", () => {
+    expect(
+      shouldShowEscalation({
+        stressLevel: "high",
+        earlyWarning: { triggered: true, severity: "severe", message: "Get help" },
+      } as AIAnalysis)
+    ).toBe(true);
+  });
+
+  it("returns false when no distress signals", () => {
+    expect(shouldShowEscalation(null)).toBe(false);
   });
 });

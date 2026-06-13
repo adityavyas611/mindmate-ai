@@ -1,6 +1,6 @@
 import type { AIAnalysis, MindfulnessExercise, MotivationContent, PatternInsights } from "@/schemas";
 import type { ChartDataPoint } from "@/lib/chart-data";
-import type { WellnessScoreBreakdown } from "@/lib/wellness";
+import type { WellnessScoreBreakdown, LocalRiskAlert } from "@/lib/wellness";
 
 export interface CheckInRecord {
   id: string;
@@ -33,6 +33,7 @@ export interface InsightsResponse {
   };
   chartData: ChartDataPoint[];
   totalCheckIns: number;
+  localRiskAlerts: LocalRiskAlert[];
 }
 
 export interface CheckInSubmitResponse {

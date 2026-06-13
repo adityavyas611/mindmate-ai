@@ -14,8 +14,9 @@ import {
   AlertTriangle,
   Menu,
   X,
+  UserCircle,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { SAFETY_DISCLAIMER } from "@/lib/utils";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
@@ -30,15 +31,81 @@ const navItems = [
   { href: "/motivation", label: "Motivation Center", icon: Sparkles },
   { href: "/burnout", label: "Burnout Monitor", icon: AlertTriangle },
   { href: "/chat", label: "AI Companion", icon: MessageCircle },
+  { href: "/profile", label: "Profile & Settings", icon: UserCircle },
 ];
+
+const FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const asideRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const update = () => setIsDesktop(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+
+  const sidebarInert = !mobileOpen && !isDesktop;
+
+  const closeMobileMenu = useCallback(() => {
+    setMobileOpen(false);
+    menuButtonRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    if (!mobileOpen || !asideRef.current) return;
+
+    const focusable = Array.from(
+      asideRef.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)
+    );
+    focusable[0]?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeMobileMenu();
+        return;
+      }
+
+      if (event.key !== "Tab" || focusable.length === 0) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [mobileOpen, closeMobileMenu]);
 
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-violet-50 via-white to-indigo-50 dark:from-zinc-950 dark:via-zinc-950 dark:to-violet-950/20">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[60] focus:rounded-md focus:bg-violet-600 focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-white"
+      >
+        Skip to main content
+      </a>
+
       <aside
+        ref={asideRef}
+        id="main-navigation"
+        aria-hidden={sidebarInert || undefined}
+        {...(sidebarInert ? { inert: true } : {})}
         className={cn(
           "fixed inset-y-0 left-0 z-50 w-64 transform border-r border-violet-100 bg-white/95 backdrop-blur dark:border-violet-900/50 dark:bg-zinc-950/95 transition-transform lg:translate-x-0",
           mobileOpen ? "translate-x-0" : "-translate-x-full"
@@ -51,13 +118,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Brain className="h-5 w-5" aria-hidden="true" />
             </div>
             <div>
-              <p className="font-semibold text-violet-900 dark:text-violet-100">MindMate AI</p>
+              <p className="font-semibold text-violet-900 dark:text-violet-100">Neurora</p>
               <p className="text-xs text-zinc-500">Your exam wellness companion</p>
             </div>
             <button
               type="button"
               className="ml-auto lg:hidden"
-              onClick={() => setMobileOpen(false)}
+              onClick={closeMobileMenu}
               aria-label="Close menu"
             >
               <X className="h-5 w-5" aria-hidden="true" />
@@ -96,7 +163,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {mobileOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/30 lg:hidden"
-          onClick={() => setMobileOpen(false)}
+          onClick={closeMobileMenu}
           aria-hidden="true"
         />
       )}
@@ -104,22 +171,31 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div className="flex flex-1 flex-col lg:pl-64">
         <header className="sticky top-0 z-30 flex items-center gap-4 border-b border-violet-100 bg-white/80 px-4 py-3 backdrop-blur dark:border-violet-900/50 dark:bg-zinc-950/80 lg:px-8">
           <button
+            ref={menuButtonRef}
             type="button"
             className="lg:hidden"
             onClick={() => setMobileOpen(true)}
             aria-label="Open menu"
+            aria-expanded={mobileOpen}
+            aria-controls="main-navigation"
           >
             <Menu className="h-5 w-5" aria-hidden="true" />
           </button>
           <Link href="/" className="font-semibold text-violet-900 dark:text-violet-100 lg:hidden">
-            MindMate AI
+            Neurora
           </Link>
           <div className="ml-auto">
             <ThemeToggle />
           </div>
         </header>
 
-        <main className="flex-1 p-4 lg:p-8">{children}</main>
+        <main id="main-content" className="flex-1 p-4 lg:p-8" tabIndex={-1}>
+          {children}
+        </main>
+
+        <footer className="border-t border-violet-100 px-4 py-4 text-center text-xs text-zinc-500 dark:border-violet-900/50 lg:px-8">
+          <p>Neurora — Exam wellness support. Not a substitute for professional mental health care.</p>
+        </footer>
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import type { AIAnalysis } from "@/schemas";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -16,7 +17,7 @@ export const EXAM_TYPES = [
 ] as const;
 
 export const SAFETY_DISCLAIMER =
-  "MindMate AI is not a therapist or medical professional. If feelings persist or become overwhelming, please speak with a trusted adult, counselor, or mental health professional.";
+  "Neurora is not a therapist or medical professional. If feelings persist or become overwhelming, please speak with a trusted adult, counselor, or mental health professional.";
 
 export const ESCALATION_MESSAGE =
   "We're concerned about how you're feeling. Please reach out to a trusted adult, school counselor, or mental health professional right away. If you're in immediate danger, contact local emergency services or a crisis helpline.";
@@ -38,4 +39,13 @@ export function formatDate(iso: string | Date): string {
     month: "short",
     day: "numeric",
   });
+}
+
+export function shouldShowEscalation(analysis: AIAnalysis | null | undefined): boolean {
+  if (!analysis) return false;
+  if (analysis.stressLevel === "severe") return true;
+  return (
+    analysis.earlyWarning?.triggered === true &&
+    analysis.earlyWarning.severity === "severe"
+  );
 }

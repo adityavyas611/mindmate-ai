@@ -10,6 +10,7 @@ import {
   LoadingState,
   EmptyState,
   AlertBanner,
+  QueryErrorState,
 } from "@/components/shared/page-components";
 import { MoodTrendChart, SleepStudyChart } from "@/components/charts/lazy-charts";
 import { api, useUserId } from "@/hooks/use-user-id";
@@ -20,7 +21,7 @@ import { RefreshCw } from "lucide-react";
 export default function InsightsPage() {
   const userId = useUserId();
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["insights", userId],
     queryFn: () => api.getInsights(userId!),
     enabled: !!userId,
@@ -35,6 +36,21 @@ export default function InsightsPage() {
   const trends = patternInsights ?? data?.localTrends;
 
   if (!userId || isLoading) return <LoadingState message="Discovering your patterns..." />;
+
+  if (isError) {
+    return (
+      <div>
+        <PageHeader
+          title="Emotional Insights"
+          description="Track mood trends, correlations, and emerging patterns."
+        />
+        <QueryErrorState
+          message={error instanceof Error ? error.message : undefined}
+          onRetry={() => refetch()}
+        />
+      </div>
+    );
+  }
 
   if (!data || data.totalCheckIns === 0) {
     return (
@@ -70,6 +86,7 @@ export default function InsightsPage() {
           onClick={() => patternMutation.mutate()}
           disabled={patternMutation.isPending}
           variant="outline"
+          aria-busy={patternMutation.isPending}
         >
           <RefreshCw
             className={`mr-2 h-4 w-4 ${patternMutation.isPending ? "animate-spin motion-reduce:animate-none" : ""}`}
@@ -87,6 +104,14 @@ export default function InsightsPage() {
         </p>
       )}
 
+      {data.localRiskAlerts?.map((alert, i) => (
+        <AlertBanner
+          key={`local-${i}`}
+          message={alert.message}
+          severity={alert.severity === "critical" ? "critical" : alert.severity === "warning" ? "warning" : "info"}
+        />
+      ))}
+
       {patternInsights?.riskAlerts?.map((alert, i) => (
         <AlertBanner
           key={i}
@@ -95,14 +120,14 @@ export default function InsightsPage() {
         />
       ))}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-label="Wellness trend summary">
+      <section aria-label="Wellness trend summary" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <TrendCard label="Mood" trend={trends?.moodTrend ?? "stable"} />
         <TrendCard label="Burnout" trend={trends?.burnoutTrend ?? "stable"} />
         <TrendCard label="Anxiety" trend={trends?.anxietyTrend ?? "stable"} />
         <TrendCard label="Confidence" trend={trends?.confidenceTrend ?? "stable"} />
         <TrendCard label="Sleep" trend={trends?.sleepTrend ?? "stable"} />
         <TrendCard label="Study Consistency" trend={trends?.studyConsistencyTrend ?? "stable"} />
-      </div>
+      </section>
 
       {patternInsights && (
         <>

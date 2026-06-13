@@ -189,6 +189,80 @@ function burnoutRiskScore(entries: HistoricalEntry[]): number {
   );
 }
 
+export interface LocalRiskAlert {
+  message: string;
+  severity: "info" | "warning" | "critical";
+}
+
+export function computeLocalRiskAlerts(
+  entries: HistoricalEntry[],
+  burnoutLevel: ReturnType<typeof computeBurnoutRiskLevel>,
+  latestAnalysis?: {
+    stressLevel?: string;
+    earlyWarning?: { triggered?: boolean; severity?: string; message?: string };
+  } | null
+): LocalRiskAlert[] {
+  const alerts: LocalRiskAlert[] = [];
+
+  if (latestAnalysis?.earlyWarning?.triggered) {
+    alerts.push({
+      message: latestAnalysis.earlyWarning.message ?? "Early warning detected in your recent check-ins.",
+      severity:
+        latestAnalysis.earlyWarning.severity === "severe"
+          ? "critical"
+          : latestAnalysis.earlyWarning.severity === "moderate"
+            ? "warning"
+            : "info",
+    });
+  }
+
+  if (latestAnalysis?.stressLevel === "severe") {
+    alerts.push({
+      message:
+        "Severe stress detected. Consider speaking with a counselor or trusted adult today.",
+      severity: "critical",
+    });
+  }
+
+  if (burnoutLevel === "critical") {
+    alerts.push({
+      message:
+        "Critical burnout risk based on recent sleep, energy, anxiety, and study patterns. Prioritize rest and recovery.",
+      severity: "critical",
+    });
+  } else if (burnoutLevel === "high") {
+    alerts.push({
+      message:
+        "Elevated burnout risk. Reduce study intensity and schedule recovery breaks this week.",
+      severity: "warning",
+    });
+  }
+
+  if (entries.length >= 2) {
+    const trends = computeLocalTrends(entries);
+    if (trends.moodTrend === "declining") {
+      alerts.push({
+        message: "Your mood trend has been declining over recent check-ins.",
+        severity: "warning",
+      });
+    }
+    if (trends.anxietyTrend === "declining") {
+      alerts.push({
+        message: "Anxiety levels have been rising compared to earlier check-ins.",
+        severity: "warning",
+      });
+    }
+    if (trends.sleepTrend === "declining") {
+      alerts.push({
+        message: "Sleep duration has been decreasing — this often precedes burnout.",
+        severity: "info",
+      });
+    }
+  }
+
+  return alerts;
+}
+
 export function mapEntriesForAI(
   entries: Array<{
     createdAt: Date;

@@ -46,6 +46,12 @@ export default function MotivationPage() {
         )}
       </Button>
 
+      {mutation.isPending && (
+        <div className="rounded-xl border border-violet-100 bg-violet-50 p-4 text-sm dark:border-violet-900 dark:bg-violet-950/30" role="status" aria-live="polite">
+          Generating personalized motivation for you...
+        </div>
+      )}
+
       {mutation.error && (
         <p className="text-sm text-red-600" role="alert">
           {mutation.error instanceof Error ? mutation.error.message : "Something went wrong"}
@@ -53,7 +59,7 @@ export default function MotivationPage() {
       )}
 
       {content && (
-        <div className="space-y-4" aria-live="polite">
+        <div className="space-y-4" role="status" aria-live="polite">
           <MotivationCard
             icon={<Sparkles className="h-5 w-5 text-amber-500" aria-hidden="true" />}
             title="Today's Affirmation"
@@ -83,7 +89,10 @@ export default function MotivationPage() {
         <Card className="border-dashed">
           <CardContent className="py-12 text-center" role="status" aria-live="polite">
             <Sparkles className="mx-auto h-10 w-10 text-violet-300" aria-hidden="true" />
-            <p className="mt-4 text-sm text-zinc-500">
+            <h2 className="mt-4 text-lg font-medium text-violet-900 dark:text-violet-100">
+              Your motivation awaits
+            </h2>
+            <p className="mt-2 text-sm text-zinc-500">
               Tap refresh to receive personalized motivation based on your journey.
             </p>
           </CardContent>

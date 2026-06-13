@@ -16,9 +16,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MindMate AI — Exam Wellness Companion",
+  title: "Neurora — Exam Wellness Companion",
   description:
-    "AI-powered mental wellness companion for students preparing for JEE, NEET, UPSC, CAT, GATE, CUET, and Board Exams.",
+    "Neurora is an AI-powered mental wellness companion for students preparing for JEE, NEET, UPSC, CAT, GATE, CUET, and Board Exams.",
 };
 
 export default function RootLayout({

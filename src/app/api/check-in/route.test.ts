@@ -4,6 +4,7 @@ import {
   OTHER_USER_ID,
   makeJsonRequest,
   makeGetRequest,
+  makeInvalidJsonRequest,
 } from "@/test/api-test-helpers";
 import { resetRateLimitStore } from "@/lib/rate-limit";
 
@@ -35,6 +36,7 @@ vi.mock("@/lib/encryption", () => ({
 
 const mockCreate = vi.fn();
 const mockFind = vi.fn();
+const mockLimit = vi.fn();
 const mockFindOneAndUpdate = vi.fn();
 
 vi.mock("@/models", () => ({
@@ -112,6 +114,17 @@ describe("POST /api/check-in", () => {
     expect(json.success).toBe(false);
   });
 
+  it("returns 422 on invalid JSON body", async () => {
+    const response = await POST(
+      makeInvalidJsonRequest("http://localhost/api/check-in", "POST", {
+        "x-user-id": VALID_USER_ID,
+      })
+    );
+    expect(response.status).toBe(422);
+    const json = await response.json();
+    expect(json.error).toBe("Invalid JSON body");
+  });
+
   it("returns 403 on user ID mismatch", async () => {
     const response = await POST(
       makeJsonRequest(
@@ -122,6 +135,35 @@ describe("POST /api/check-in", () => {
       )
     );
     expect(response.status).toBe(403);
+  });
+
+  it("returns 401 when auth header is missing", async () => {
+    const response = await POST(
+      makeJsonRequest("http://localhost/api/check-in", "POST", validBody)
+    );
+    expect(response.status).toBe(401);
+  });
+
+  it("returns 429 when rate limit exceeded", async () => {
+    for (let i = 0; i < 5; i++) {
+      await POST(
+        makeJsonRequest(
+          "http://localhost/api/check-in",
+          "POST",
+          validBody,
+          { "x-user-id": VALID_USER_ID }
+        )
+      );
+    }
+    const response = await POST(
+      makeJsonRequest(
+        "http://localhost/api/check-in",
+        "POST",
+        validBody,
+        { "x-user-id": VALID_USER_ID }
+      )
+    );
+    expect(response.status).toBe(429);
   });
 
   it("returns 200 on valid request", async () => {
@@ -158,27 +200,28 @@ describe("POST /api/check-in", () => {
 describe("GET /api/check-in", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockLimit.mockReturnValue({
+      lean: vi.fn().mockResolvedValue([
+        {
+          _id: { toString: () => "id-1" },
+          userId: VALID_USER_ID,
+          encryptedJournal: "encrypted:hello",
+          moodScore: 7,
+          energyLevel: 6,
+          sleepHours: 7,
+          studyHours: 6,
+          examType: "JEE",
+          daysRemaining: 90,
+          confidenceLevel: 6,
+          anxietyLevel: 4,
+          analysis: {},
+          createdAt: new Date(),
+        },
+      ]),
+    });
     mockFind.mockReturnValue({
       sort: vi.fn().mockReturnValue({
-        limit: vi.fn().mockReturnValue({
-          lean: vi.fn().mockResolvedValue([
-            {
-              _id: { toString: () => "id-1" },
-              userId: VALID_USER_ID,
-              encryptedJournal: "encrypted:hello",
-              moodScore: 7,
-              energyLevel: 6,
-              sleepHours: 7,
-              studyHours: 6,
-              examType: "JEE",
-              daysRemaining: 90,
-              confidenceLevel: 6,
-              anxietyLevel: 4,
-              analysis: {},
-              createdAt: new Date(),
-            },
-          ]),
-        }),
+        limit: mockLimit,
       }),
     });
   });
@@ -188,6 +231,68 @@ describe("GET /api/check-in", () => {
       makeGetRequest(`http://localhost/api/check-in?userId=bad-id`)
     );
     expect(response.status).toBe(400);
+  });
+
+  it("returns 400 for invalid limit over 100", async () => {
+    const response = await GET(
+      makeGetRequest(
+        `http://localhost/api/check-in?userId=${VALID_USER_ID}&limit=200`,
+        { "x-user-id": VALID_USER_ID }
+      )
+    );
+    expect(response.status).toBe(400);
+  });
+
+  it("uses default limit of 30 when omitted", async () => {
+    const response = await GET(
+      makeGetRequest(
+        `http://localhost/api/check-in?userId=${VALID_USER_ID}`,
+        { "x-user-id": VALID_USER_ID }
+      )
+    );
+    expect(response.status).toBe(200);
+    expect(mockLimit).toHaveBeenCalledWith(30);
+  });
+
+  it("returns 400 for invalid limit", async () => {
+    const response = await GET(
+      makeGetRequest(
+        `http://localhost/api/check-in?userId=${VALID_USER_ID}&limit=not-a-number`,
+        { "x-user-id": VALID_USER_ID }
+      )
+    );
+    expect(response.status).toBe(400);
+    const json = await response.json();
+    expect(json.error).toBe("Invalid limit parameter");
+  });
+
+  it("returns 401 when auth header is missing", async () => {
+    const response = await GET(
+      makeGetRequest(`http://localhost/api/check-in?userId=${VALID_USER_ID}`)
+    );
+    expect(response.status).toBe(401);
+  });
+
+  it("returns 403 on user ID mismatch", async () => {
+    const response = await GET(
+      makeGetRequest(
+        `http://localhost/api/check-in?userId=${VALID_USER_ID}`,
+        { "x-user-id": OTHER_USER_ID }
+      )
+    );
+    expect(response.status).toBe(403);
+  });
+
+  it("returns 500 when database connection fails", async () => {
+    const { connectDB } = await import("@/lib/db/mongodb");
+    vi.mocked(connectDB).mockRejectedValueOnce(new Error("MONGODB_URI is not configured"));
+    const response = await GET(
+      makeGetRequest(
+        `http://localhost/api/check-in?userId=${VALID_USER_ID}`,
+        { "x-user-id": VALID_USER_ID }
+      )
+    );
+    expect(response.status).toBe(500);
   });
 
   it("returns decrypted check-ins", async () => {

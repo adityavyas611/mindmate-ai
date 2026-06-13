@@ -11,22 +11,40 @@ import {
   LoadingState,
   EmptyState,
   StatCard,
+  AlertBanner,
+  QueryErrorState,
 } from "@/components/shared/page-components";
 import { WellnessScoreChart } from "@/components/charts/lazy-charts";
 import { api, useUserId } from "@/hooks/use-user-id";
+import { ESCALATION_MESSAGE, shouldShowEscalation } from "@/lib/utils";
 import { severityBadgeVariant } from "@/types/api";
 import { Activity, Brain, Heart, Moon, Target } from "lucide-react";
 
 export default function DashboardPage() {
   const userId = useUserId();
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["insights", userId],
     queryFn: () => api.getInsights(userId!),
     enabled: !!userId,
   });
 
   if (!userId || isLoading) return <LoadingState message="Loading wellness dashboard..." />;
+
+  if (isError) {
+    return (
+      <div>
+        <PageHeader
+          title="Wellness Dashboard"
+          description="Your holistic wellness overview at a glance."
+        />
+        <QueryErrorState
+          message={error instanceof Error ? error.message : undefined}
+          onRetry={() => refetch()}
+        />
+      </div>
+    );
+  }
 
   if (!data || data.totalCheckIns === 0) {
     return (
@@ -36,7 +54,7 @@ export default function DashboardPage() {
           description="Your holistic wellness overview at a glance."
         />
         <EmptyState
-          title="Welcome to MindMate AI"
+          title="Welcome to Neurora"
           description="Complete your first check-in to see your wellness score, trends, and personalized insights."
           action={
             <Button asChild>
@@ -56,6 +74,10 @@ export default function DashboardPage() {
         title="Wellness Dashboard"
         description="Your holistic wellness overview at a glance."
       />
+
+      {shouldShowEscalation(latestAnalysis) && (
+        <AlertBanner message={ESCALATION_MESSAGE} severity="critical" />
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard

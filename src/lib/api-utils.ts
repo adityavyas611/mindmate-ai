@@ -14,8 +14,19 @@ export function handleApiError(error: unknown) {
   if (error instanceof ZodError) {
     return jsonError(error.errors.map((e) => e.message).join(", "), 422);
   }
+  if (error instanceof SyntaxError) {
+    return jsonError("Invalid JSON body", 422);
+  }
   console.error("[API Error]", error);
   return jsonError("An unexpected error occurred. Please try again later.", 500);
+}
+
+export async function parseJsonBody(request: Request) {
+  try {
+    return { body: await request.json() };
+  } catch {
+    return { error: jsonError("Invalid JSON body", 422) };
+  }
 }
 
 export function validateUserIdHeader(request: Request): string | null {
@@ -23,6 +34,7 @@ export function validateUserIdHeader(request: Request): string | null {
 }
 
 const userIdParamSchema = z.string().uuid();
+const limitParamSchema = z.coerce.number().int().min(1).max(100).default(30);
 
 export function parseUserIdParam(userId: string | null) {
   if (!userId) {
@@ -39,7 +51,10 @@ export function validateUserIdAccess(
   headerUserId: string | null,
   userId: string
 ) {
-  if (headerUserId && headerUserId !== userId) {
+  if (!headerUserId) {
+    return jsonError("Authentication required", 401);
+  }
+  if (headerUserId !== userId) {
     return jsonError("User ID mismatch", 403);
   }
   return null;
@@ -63,4 +78,12 @@ export function applyRateLimit(
     );
   }
   return null;
+}
+
+export function parseLimitParam(limit: string | null) {
+  const parsed = limitParamSchema.safeParse(limit ?? undefined);
+  if (!parsed.success) {
+    return { error: jsonError("Invalid limit parameter") };
+  }
+  return { limit: parsed.data };
 }

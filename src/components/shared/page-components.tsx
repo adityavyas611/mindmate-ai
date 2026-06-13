@@ -116,3 +116,29 @@ export function AlertBanner({
     </div>
   );
 }
+
+export function QueryErrorState({
+  message = "Something went wrong while loading your data.",
+  onRetry,
+}: {
+  message?: string;
+  onRetry?: () => void;
+}) {
+  return (
+    <Card className="border-red-200 dark:border-red-900">
+      <CardContent className="py-8 text-center" role="alert" aria-live="assertive">
+        <p className="font-medium text-red-700 dark:text-red-300">Unable to load data</p>
+        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">{message}</p>
+        {onRetry && (
+          <button
+            type="button"
+            onClick={onRetry}
+            className="mt-4 rounded-md bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-700"
+          >
+            Try again
+          </button>
+        )}
+      </CardContent>
+    </Card>
+  );
+}

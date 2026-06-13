@@ -9,6 +9,7 @@ import {
   validateUserIdHeader,
   validateUserIdAccess,
   applyRateLimit,
+  parseJsonBody,
 } from "@/lib/api-utils";
 import { computeStudyStreak, mapEntriesForAI } from "@/lib/wellness";
 import { getDayOfWeek } from "@/lib/utils";
@@ -18,8 +19,9 @@ export async function POST(request: NextRequest) {
     const rateLimited = applyRateLimit(request, "motivation-post", 10, 60_000);
     if (rateLimited) return rateLimited;
 
-    const body = await request.json();
-    const { userId } = userIdSchema.parse(body);
+    const parsedBody = await parseJsonBody(request);
+    if ("error" in parsedBody && parsedBody.error) return parsedBody.error;
+    const { userId } = userIdSchema.parse(parsedBody.body);
 
     const headerUserId = validateUserIdHeader(request);
     const accessError = validateUserIdAccess(headerUserId, userId);

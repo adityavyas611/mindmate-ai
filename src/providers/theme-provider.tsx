@@ -4,7 +4,7 @@ import { createContext, useContext, useEffect, useSyncExternalStore } from "reac
 
 type Theme = "light" | "dark";
 
-const STORAGE_KEY = "mindmate-theme";
+const STORAGE_KEY = "neurora-theme";
 const listeners = new Set<() => void>();
 
 function getStoredTheme(): Theme {

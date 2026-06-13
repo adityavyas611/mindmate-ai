@@ -1,4 +1,4 @@
-# MindMate AI
+# Neurora
 
 An AI-powered mental wellness companion for students preparing for high-stakes examinations (JEE, NEET, UPSC, CAT, GATE, CUET, Board Exams).
 
@@ -72,6 +72,9 @@ cp .env.example .env.local
 
 # Run development server
 npm run dev
+
+# Run tests
+npm test
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
@@ -122,7 +125,8 @@ src/
 │   ├── mindfulness/        # Mindfulness coach
 │   ├── motivation/         # Motivation center
 │   ├── burnout/            # Burnout monitor
-│   └── chat/               # AI companion chat
+│   ├── chat/               # AI companion chat
+│   └── profile/            # Profile & settings
 ├── components/             # UI components
 ├── hooks/                  # Client hooks & API client
 ├── lib/                    # Utilities, AI, encryption, DB
@@ -133,7 +137,7 @@ src/
 
 ## Safety Notice
 
-MindMate AI is **not a therapist or medical professional**. It provides wellness support for exam preparation. If feelings persist or become overwhelming, users are encouraged to speak with a trusted adult, counselor, or mental health professional.
+Neurora is **not a therapist or medical professional**. It provides wellness support for exam preparation. If feelings persist or become overwhelming, users are encouraged to speak with a trusted adult, counselor, or mental health professional.
 
 ## License
 

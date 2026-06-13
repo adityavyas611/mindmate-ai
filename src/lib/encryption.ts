@@ -39,7 +39,7 @@ export function decrypt(payload: string): string {
 }
 
 export function hashUserId(userId: string): string {
-  const salt = process.env.ENCRYPTION_KEY?.slice(0, 16) ?? "mindmate-salt";
+  const salt = process.env.ENCRYPTION_KEY?.slice(0, 16) ?? "neurora-salt";
   return crypto
     .createHmac("sha256", salt)
     .update(userId)

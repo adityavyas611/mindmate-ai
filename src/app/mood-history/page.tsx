@@ -10,16 +10,18 @@ import {
   PageHeader,
   LoadingState,
   EmptyState,
+  QueryErrorState,
 } from "@/components/shared/page-components";
 import { MoodTrendChart } from "@/components/charts/lazy-charts";
 import { api, useUserId } from "@/hooks/use-user-id";
 import { buildMoodChartDataFromCheckIns } from "@/lib/chart-data";
+import { MetricPill } from "@/components/shared/metric-pill";
 import { formatDate } from "@/lib/utils";
 
 export default function MoodHistoryPage() {
   const userId = useUserId();
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["check-ins", userId],
     queryFn: () => api.getCheckIns(userId!),
     enabled: !!userId,
@@ -31,6 +33,18 @@ export default function MoodHistoryPage() {
   );
 
   if (!userId || isLoading) return <LoadingState message="Loading mood history..." />;
+
+  if (isError) {
+    return (
+      <div>
+        <PageHeader title="Mood History" description="Your emotional journey over time." />
+        <QueryErrorState
+          message={error instanceof Error ? error.message : undefined}
+          onRetry={() => refetch()}
+        />
+      </div>
+    );
+  }
 
   if (!data?.length) {
     return (
@@ -93,13 +107,5 @@ export default function MoodHistoryPage() {
         ))}
       </section>
     </div>
-  );
-}
-
-function MetricPill({ label, value }: { label: string; value: string | number }) {
-  return (
-    <span className="rounded-full bg-violet-50 px-2.5 py-0.5 text-xs font-medium text-violet-700 dark:bg-violet-950 dark:text-violet-300">
-      {label}: {value}
-    </span>
   );
 }

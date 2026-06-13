@@ -15,6 +15,8 @@ import {
   parseUserIdParam,
   validateUserIdAccess,
   applyRateLimit,
+  parseLimitParam,
+  parseJsonBody,
 } from "@/lib/api-utils";
 import { getDayOfWeek } from "@/lib/utils";
 import {
@@ -28,8 +30,9 @@ export async function POST(request: NextRequest) {
     if (rateLimited) return rateLimited;
 
     const headerUserId = validateUserIdHeader(request);
-    const body = await request.json();
-    const input = checkInSchema.parse(body);
+    const parsedBody = await parseJsonBody(request);
+    if ("error" in parsedBody && parsedBody.error) return parsedBody.error;
+    const input = checkInSchema.parse(parsedBody.body);
 
     const accessError = validateUserIdAccess(headerUserId, input.userId);
     if (accessError) return accessError;
@@ -115,10 +118,9 @@ export async function GET(request: NextRequest) {
 
     await connectDB();
 
-    const limit = Math.min(
-      parseInt(request.nextUrl.searchParams.get("limit") ?? "30", 10),
-      100
-    );
+    const limitParsed = parseLimitParam(request.nextUrl.searchParams.get("limit"));
+    if ("error" in limitParsed && limitParsed.error) return limitParsed.error;
+    const limit = limitParsed.limit!;
 
     const checkIns = await CheckIn.find({ userId })
       .sort({ createdAt: -1 })

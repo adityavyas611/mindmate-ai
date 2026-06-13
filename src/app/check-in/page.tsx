@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/input";
-import { Slider } from "@/components/ui/slider";
+import { SliderField } from "@/components/forms/slider-field";
 import {
   Select,
   SelectContent,
@@ -99,6 +99,12 @@ export default function CheckInPage() {
   if (!userId) return <LoadingState message="Initializing your session..." />;
 
   const errorId = "check-in-error";
+  const fieldErrorProps = displayError
+    ? ({ "aria-describedby": errorId, "aria-invalid": true as const })
+    : {};
+  const sliderErrorProps = displayError
+    ? { invalid: true as const, errorId }
+    : {};
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -132,8 +138,7 @@ export default function CheckInPage() {
               required
               maxLength={5000}
               className="min-h-[160px]"
-              aria-describedby={displayError ? errorId : undefined}
-              aria-invalid={displayError ? true : undefined}
+              {...fieldErrorProps}
             />
           </CardContent>
         </Card>
@@ -143,10 +148,10 @@ export default function CheckInPage() {
             <CardTitle>How are you feeling?</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <SliderField id="mood" label="Mood" value={moodScore} onChange={setMoodScore} low="Low" high="Great" />
-            <SliderField id="energy" label="Energy Level" value={energyLevel} onChange={setEnergyLevel} />
-            <SliderField id="confidence" label="Confidence" value={confidenceLevel} onChange={setConfidenceLevel} />
-            <SliderField id="anxiety" label="Anxiety" value={anxietyLevel} onChange={setAnxietyLevel} low="Calm" high="High" />
+            <SliderField id="mood" label="Mood" value={moodScore} onChange={setMoodScore} low="Low" high="Great" {...sliderErrorProps} />
+            <SliderField id="energy" label="Energy Level" value={energyLevel} onChange={setEnergyLevel} {...sliderErrorProps} />
+            <SliderField id="confidence" label="Confidence" value={confidenceLevel} onChange={setConfidenceLevel} {...sliderErrorProps} />
+            <SliderField id="anxiety" label="Anxiety" value={anxietyLevel} onChange={setAnxietyLevel} low="Calm" high="High" {...sliderErrorProps} />
           </CardContent>
         </Card>
 
@@ -166,6 +171,7 @@ export default function CheckInPage() {
                 value={sleepHours}
                 onChange={(e) => setSleepHours(e.target.value)}
                 required
+                {...fieldErrorProps}
               />
             </div>
             <div>
@@ -179,6 +185,7 @@ export default function CheckInPage() {
                 value={studyHours}
                 onChange={(e) => setStudyHours(e.target.value)}
                 required
+                {...fieldErrorProps}
               />
             </div>
           </CardContent>
@@ -192,7 +199,7 @@ export default function CheckInPage() {
             <div>
               <Label htmlFor="exam-type">Exam Type</Label>
               <Select value={examType} onValueChange={setExamType}>
-                <SelectTrigger id="exam-type" aria-label="Exam type">
+                <SelectTrigger id="exam-type" aria-label="Exam type" {...fieldErrorProps}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -214,6 +221,7 @@ export default function CheckInPage() {
                 value={daysRemaining}
                 onChange={(e) => setDaysRemaining(e.target.value)}
                 required
+                {...fieldErrorProps}
               />
             </div>
           </CardContent>
@@ -229,49 +237,6 @@ export default function CheckInPage() {
           {mutation.isPending ? "Analyzing with AI..." : "Submit Check-In & Get Insights"}
         </Button>
       </form>
-    </div>
-  );
-}
-
-function SliderField({
-  id,
-  label,
-  value,
-  onChange,
-  low = "1",
-  high = "10",
-}: {
-  id: string;
-  label: string;
-  value: number[];
-  onChange: (v: number[]) => void;
-  low?: string;
-  high?: string;
-}) {
-  return (
-    <div>
-      <div className="mb-2 flex items-center justify-between">
-        <Label htmlFor={id}>{label}</Label>
-        <span className="text-sm font-semibold text-violet-600" aria-hidden="true">
-          {value[0]}/10
-        </span>
-      </div>
-      <Slider
-        id={id}
-        min={1}
-        max={10}
-        step={1}
-        value={value}
-        onValueChange={onChange}
-        aria-valuemin={1}
-        aria-valuemax={10}
-        aria-valuenow={value[0]}
-        aria-label={`${label}: ${value[0]} out of 10`}
-      />
-      <div className="mt-1 flex justify-between text-xs text-zinc-400">
-        <span>{low}</span>
-        <span>{high}</span>
-      </div>
     </div>
   );
 }

@@ -10,21 +10,37 @@ import {
   LoadingState,
   EmptyState,
   AlertBanner,
+  QueryErrorState,
 } from "@/components/shared/page-components";
 import { api, useUserId } from "@/hooks/use-user-id";
-import { ESCALATION_MESSAGE, formatDate } from "@/lib/utils";
+import { ESCALATION_MESSAGE, formatDate, shouldShowEscalation } from "@/lib/utils";
 import { scoreBadgeVariant, severityBadgeVariant } from "@/types/api";
 
 export default function AnalysisPage() {
   const userId = useUserId();
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["check-ins", userId],
     queryFn: () => api.getCheckIns(userId!),
     enabled: !!userId,
   });
 
   if (!userId || isLoading) return <LoadingState message="Loading your analysis..." />;
+
+  if (isError) {
+    return (
+      <div>
+        <PageHeader
+          title="AI Journal Analysis"
+          description="Personalized insights from your emotional check-ins."
+        />
+        <QueryErrorState
+          message={error instanceof Error ? error.message : undefined}
+          onRetry={() => refetch()}
+        />
+      </div>
+    );
+  }
 
   const latest = data?.[0];
 
@@ -57,7 +73,11 @@ export default function AnalysisPage() {
         description={`Analysis for ${formatDate(latest.createdAt)}`}
       />
 
-      {analysis.earlyWarning?.triggered && (
+      {shouldShowEscalation(analysis) && (
+        <AlertBanner message={ESCALATION_MESSAGE} severity="critical" />
+      )}
+
+      {analysis.earlyWarning?.triggered && !shouldShowEscalation(analysis) && (
         <AlertBanner
           message={
             analysis.earlyWarning.severity === "severe"
@@ -91,6 +111,29 @@ export default function AnalysisPage() {
           </p>
         </CardContent>
       </Card>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Confidence Indicators</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="leading-relaxed text-zinc-700 dark:text-zinc-300">
+              {analysis.confidenceIndicators}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Productivity Impact</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="leading-relaxed text-zinc-700 dark:text-zinc-300">
+              {analysis.productivityImpact}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
 
       <Card className="border-violet-200 bg-violet-50/50 dark:border-violet-800 dark:bg-violet-950/30">
         <CardHeader>

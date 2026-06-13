@@ -8,6 +8,7 @@ import {
   validateUserIdHeader,
   parseUserIdParam,
   validateUserIdAccess,
+  parseJsonBody,
 } from "@/lib/api-utils";
 
 export async function GET(request: NextRequest) {
@@ -30,8 +31,9 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const body = await request.json();
-    const input = profileSchema.parse(body);
+    const parsedBody = await parseJsonBody(request);
+    if ("error" in parsedBody && parsedBody.error) return parsedBody.error;
+    const input = profileSchema.parse(parsedBody.body);
 
     const headerUserId = validateUserIdHeader(request);
     const accessError = validateUserIdAccess(headerUserId, input.userId);
