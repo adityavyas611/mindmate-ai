@@ -3,18 +3,27 @@ import { connectDB } from "@/lib/db/mongodb";
 import { generateMindfulnessExercise } from "@/lib/ai/openai";
 import { userIdSchema } from "@/schemas";
 import { CheckIn } from "@/models";
-import { jsonOk, jsonError, handleApiError, validateUserIdHeader } from "@/lib/api-utils";
+import {
+  jsonOk,
+  jsonError,
+  handleApiError,
+  validateUserIdHeader,
+  validateUserIdAccess,
+  applyRateLimit,
+} from "@/lib/api-utils";
 import { getDayOfWeek } from "@/lib/utils";
 
 export async function POST(request: NextRequest) {
   try {
+    const rateLimited = applyRateLimit(request, "mindfulness-post", 10, 60_000);
+    if (rateLimited) return rateLimited;
+
     const body = await request.json();
     const { userId } = userIdSchema.parse(body);
 
     const headerUserId = validateUserIdHeader(request);
-    if (headerUserId && headerUserId !== userId) {
-      return jsonError("User ID mismatch", 403);
-    }
+    const accessError = validateUserIdAccess(headerUserId, userId);
+    if (accessError) return accessError;
 
     await connectDB();
 

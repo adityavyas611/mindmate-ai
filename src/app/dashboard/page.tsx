@@ -12,34 +12,17 @@ import {
   EmptyState,
   StatCard,
 } from "@/components/shared/page-components";
-import { WellnessScoreChart } from "@/components/charts/trend-charts";
+import { WellnessScoreChart } from "@/components/charts/lazy-charts";
 import { api, useUserId } from "@/hooks/use-user-id";
+import { severityBadgeVariant } from "@/types/api";
 import { Activity, Brain, Heart, Moon, Target } from "lucide-react";
-import type { WellnessScoreBreakdown } from "@/lib/wellness";
-
-interface DashboardData {
-  wellnessScore: WellnessScoreBreakdown;
-  burnoutLevel: string;
-  chartData: Array<Record<string, unknown>>;
-  totalCheckIns: number;
-  latestAnalysis?: {
-    stressPredictorScore?: number;
-    earlyWarning?: { triggered: boolean; message: string };
-  };
-}
-
-function burnoutVariant(level: string): "success" | "warning" | "danger" {
-  if (level === "low") return "success";
-  if (level === "moderate") return "warning";
-  return "danger";
-}
 
 export default function DashboardPage() {
   const userId = useUserId();
 
   const { data, isLoading } = useQuery({
     queryKey: ["insights", userId],
-    queryFn: () => api.getInsights(userId!) as Promise<DashboardData>,
+    queryFn: () => api.getInsights(userId!),
     enabled: !!userId,
   });
 
@@ -121,7 +104,7 @@ export default function DashboardPage() {
                   <span>{label}</span>
                   <span className="font-medium">{score}/100</span>
                 </div>
-                <Progress value={score} />
+                <Progress value={score} aria-label={`${label} score ${score} out of 100`} />
               </div>
             ))}
           </CardContent>
@@ -132,7 +115,7 @@ export default function DashboardPage() {
             <CardTitle>Wellness & Stress Trends</CardTitle>
           </CardHeader>
           <CardContent>
-            <WellnessScoreChart data={chartData as never[]} />
+            <WellnessScoreChart data={chartData} />
           </CardContent>
         </Card>
       </div>
@@ -140,7 +123,7 @@ export default function DashboardPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Moon className="h-5 w-5 text-violet-600" />
+            <Moon className="h-5 w-5 text-violet-600" aria-hidden="true" />
             Improvement Suggestions
           </CardTitle>
         </CardHeader>
@@ -148,7 +131,7 @@ export default function DashboardPage() {
           <ul className="space-y-2">
             {wellnessScore.suggestions.map((s, i) => (
               <li key={i} className="flex gap-2 text-sm leading-relaxed">
-                <span className="text-violet-600">→</span>
+                <span className="text-violet-600" aria-hidden="true">→</span>
                 {s}
               </li>
             ))}
@@ -157,11 +140,11 @@ export default function DashboardPage() {
       </Card>
 
       <div className="flex flex-wrap gap-3">
-        <Badge variant={burnoutVariant(burnoutLevel)} className="capitalize px-3 py-1">
+        <Badge variant={severityBadgeVariant(burnoutLevel)} className="capitalize px-3 py-1">
           Burnout: {burnoutLevel}
         </Badge>
         {latestAnalysis?.earlyWarning?.triggered && (
-          <Badge variant="danger" className="px-3 py-1">
+          <Badge variant="danger" className="px-3 py-1" role="status" aria-live="polite">
             Early Warning Active
           </Badge>
         )}

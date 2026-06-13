@@ -11,40 +11,18 @@ import {
   EmptyState,
   AlertBanner,
 } from "@/components/shared/page-components";
-import { MoodTrendChart, SleepStudyChart } from "@/components/charts/trend-charts";
+import { MoodTrendChart, SleepStudyChart } from "@/components/charts/lazy-charts";
 import { api, useUserId } from "@/hooks/use-user-id";
 import type { PatternInsights } from "@/schemas";
-import type { WellnessScoreBreakdown } from "@/lib/wellness";
+import { trendBadgeVariant } from "@/types/api";
 import { RefreshCw } from "lucide-react";
-
-interface InsightsData {
-  wellnessScore: WellnessScoreBreakdown;
-  burnoutLevel: string;
-  patternInsights: PatternInsights | null;
-  localTrends: {
-    moodTrend: string;
-    burnoutTrend: string;
-    anxietyTrend: string;
-    confidenceTrend: string;
-    sleepTrend: string;
-    studyConsistencyTrend: string;
-  };
-  chartData: Array<Record<string, unknown>>;
-  totalCheckIns: number;
-}
-
-function trendBadge(trend: string) {
-  if (trend === "improving") return "success" as const;
-  if (trend === "declining") return "danger" as const;
-  return "info" as const;
-}
 
 export default function InsightsPage() {
   const userId = useUserId();
 
   const { data, isLoading } = useQuery({
     queryKey: ["insights", userId],
-    queryFn: () => api.getInsights(userId!) as Promise<InsightsData>,
+    queryFn: () => api.getInsights(userId!),
     enabled: !!userId,
   });
 
@@ -93,9 +71,20 @@ export default function InsightsPage() {
           disabled={patternMutation.isPending}
           variant="outline"
         >
-          <RefreshCw className={`mr-2 h-4 w-4 ${patternMutation.isPending ? "animate-spin" : ""}`} />
+          <RefreshCw
+            className={`mr-2 h-4 w-4 ${patternMutation.isPending ? "animate-spin motion-reduce:animate-none" : ""}`}
+            aria-hidden="true"
+          />
           {patternMutation.isPending ? "Analyzing patterns..." : "Generate AI Pattern Analysis"}
         </Button>
+      )}
+
+      {patternMutation.error && (
+        <p className="text-sm text-red-600" role="alert">
+          {patternMutation.error instanceof Error
+            ? patternMutation.error.message
+            : "Failed to generate pattern analysis"}
+        </p>
       )}
 
       {patternInsights?.riskAlerts?.map((alert, i) => (
@@ -106,7 +95,7 @@ export default function InsightsPage() {
         />
       ))}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-label="Wellness trend summary">
         <TrendCard label="Mood" trend={trends?.moodTrend ?? "stable"} />
         <TrendCard label="Burnout" trend={trends?.burnoutTrend ?? "stable"} />
         <TrendCard label="Anxiety" trend={trends?.anxietyTrend ?? "stable"} />
@@ -173,7 +162,7 @@ export default function InsightsPage() {
           <CardTitle>Mood & Confidence Trends</CardTitle>
         </CardHeader>
         <CardContent>
-          <MoodTrendChart data={chartData as never[]} />
+          <MoodTrendChart data={chartData} />
         </CardContent>
       </Card>
 
@@ -182,7 +171,7 @@ export default function InsightsPage() {
           <CardTitle>Sleep & Study Correlation</CardTitle>
         </CardHeader>
         <CardContent>
-          <SleepStudyChart data={chartData as never[]} />
+          <SleepStudyChart data={chartData} />
         </CardContent>
       </Card>
 
@@ -213,7 +202,7 @@ function TrendCard({ label, trend }: { label: string; trend: string }) {
     <Card>
       <CardContent className="flex items-center justify-between pt-6">
         <span className="text-sm text-zinc-500">{label}</span>
-        <Badge variant={trendBadge(trend)} className="capitalize">
+        <Badge variant={trendBadgeVariant(trend)} className="capitalize">
           {trend}
         </Badge>
       </CardContent>

@@ -3,18 +3,27 @@ import { connectDB } from "@/lib/db/mongodb";
 import { chatWithCoach } from "@/lib/ai/openai";
 import { chatMessageSchema } from "@/schemas";
 import { CheckIn, ChatMessage, UserProfile } from "@/models";
-import { jsonOk, jsonError, handleApiError, validateUserIdHeader } from "@/lib/api-utils";
+import {
+  jsonOk,
+  handleApiError,
+  validateUserIdHeader,
+  parseUserIdParam,
+  validateUserIdAccess,
+  applyRateLimit,
+} from "@/lib/api-utils";
 import { mapEntriesForAI } from "@/lib/wellness";
 
 export async function POST(request: NextRequest) {
   try {
+    const rateLimited = applyRateLimit(request, "chat-post", 20, 60_000);
+    if (rateLimited) return rateLimited;
+
     const body = await request.json();
     const { userId, message } = chatMessageSchema.parse(body);
 
     const headerUserId = validateUserIdHeader(request);
-    if (headerUserId && headerUserId !== userId) {
-      return jsonError("User ID mismatch", 403);
-    }
+    const accessError = validateUserIdAccess(headerUserId, userId);
+    if (accessError) return accessError;
 
     await connectDB();
 
@@ -57,13 +66,13 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const userId = request.nextUrl.searchParams.get("userId");
-    if (!userId) return jsonError("userId is required");
+    const parsed = parseUserIdParam(request.nextUrl.searchParams.get("userId"));
+    if ("error" in parsed && parsed.error) return parsed.error;
+    const userId = parsed.userId!;
 
     const headerUserId = validateUserIdHeader(request);
-    if (headerUserId && headerUserId !== userId) {
-      return jsonError("User ID mismatch", 403);
-    }
+    const accessError = validateUserIdAccess(headerUserId, userId);
+    if (accessError) return accessError;
 
     await connectDB();
 

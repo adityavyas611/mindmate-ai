@@ -64,12 +64,15 @@ export default function HomePage() {
 
   return (
     <div className="space-y-8">
-      <section className="rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-700 p-8 text-white lg:p-12">
+      <section
+        className="rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-700 p-8 text-white lg:p-12"
+        aria-labelledby="home-hero-heading"
+      >
         <div className="flex items-center gap-2 text-violet-200">
-          <Heart className="h-5 w-5" />
+          <Heart className="h-5 w-5" aria-hidden="true" />
           <span className="text-sm font-medium">Exam Wellness Companion</span>
         </div>
-        <h1 className="mt-4 text-3xl font-bold tracking-tight lg:text-4xl">
+        <h1 id="home-hero-heading" className="mt-4 text-3xl font-bold tracking-tight lg:text-4xl">
           Survive exam prep without losing yourself
         </h1>
         <p className="mt-4 max-w-2xl text-violet-100 leading-relaxed">
@@ -81,7 +84,7 @@ export default function HomePage() {
           <Button asChild size="lg" variant="secondary">
             <Link href="/check-in">
               Start Today&apos;s Check-In
-              <ArrowRight className="ml-2 h-4 w-4" />
+              <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
             </Link>
           </Button>
           <Button asChild size="lg" variant="outline" className="border-white/30 text-white hover:bg-white/10">
@@ -91,7 +94,7 @@ export default function HomePage() {
       </section>
 
       {data && data.totalCheckIns > 0 && (
-        <Card>
+        <Card aria-label="Your wellness snapshot">
           <CardHeader>
             <CardTitle>Your Wellness Snapshot</CardTitle>
           </CardHeader>
@@ -99,10 +102,17 @@ export default function HomePage() {
             <div className="grid gap-6 sm:grid-cols-3">
               <div>
                 <p className="text-sm text-zinc-500">Wellness Score</p>
-                <p className="text-3xl font-bold text-violet-700 dark:text-violet-300">
+                <p
+                  className="text-3xl font-bold text-violet-700 dark:text-violet-300"
+                  aria-label={`Wellness score ${data.wellnessScore.overall} out of 100`}
+                >
                   {data.wellnessScore.overall}/100
                 </p>
-                <Progress value={data.wellnessScore.overall} className="mt-2" />
+                <Progress
+                  value={data.wellnessScore.overall}
+                  className="mt-2"
+                  aria-label="Wellness score progress"
+                />
               </div>
               <div>
                 <p className="text-sm text-zinc-500">Check-Ins</p>
@@ -117,12 +127,12 @@ export default function HomePage() {
         </Card>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <section aria-label="Feature quick links" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {features.map(({ href, icon: Icon, title, description }) => (
-          <Link key={href} href={href}>
+          <Link key={href} href={href} aria-label={`${title}: ${description}`}>
             <Card className="h-full transition-shadow hover:shadow-md">
               <CardHeader>
-                <Icon className="h-6 w-6 text-violet-600" />
+                <Icon className="h-6 w-6 text-violet-600" aria-hidden="true" />
                 <CardTitle className="text-base">{title}</CardTitle>
               </CardHeader>
               <CardContent>
@@ -131,7 +141,7 @@ export default function HomePage() {
             </Card>
           </Link>
         ))}
-      </div>
+      </section>
 
       <Card className="border-dashed">
         <CardContent className="py-6 text-center text-sm text-zinc-500">

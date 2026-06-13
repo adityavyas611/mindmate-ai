@@ -20,17 +20,22 @@ Requirements:
 
 Mandatory checklist before completing any task:
 - [ ] Every acceptance criterion is implemented end-to-end.
-- [ ] Edge cases relevant to the problem are handled (empty input, invalid input, API failure, loading, over-budget, allergy conflicts).
+- [ ] Edge cases relevant to the problem are handled (empty input, invalid input, API failure, loading, no check-ins yet, severe distress).
 - [ ] Deliverables match spec: README, `.env.example`, error/loading/empty states, deployment instructions.
 - [ ] Feature behavior is traceable to a requirement (no orphan code).
 
-SmartMeal AI requirement coverage (verify when applicable):
-- 10 preference inputs collected and validated.
-- Breakfast, lunch, dinner plans with dish name, prep time, ingredients, instructions, cost, calories, macros.
-- Consolidated grocery list and ingredient substitutions.
-- Budget feasibility (Within / Slightly Over / Over) with cheaper alternatives and optimized regeneration.
-- Dietary and allergy validation.
-- Responsive UI, dark mode, accessibility.
+MindMate AI requirement coverage (verify when applicable):
+- 10 check-in inputs collected and validated (journal, mood, energy, sleep, study, exam type, days remaining, confidence, anxiety + userId).
+- AI journal analysis with emotional insights, stress/burnout assessment, and wellness score.
+- Emotional insights dashboard with trends, correlations, and risk alerts.
+- Wellness dashboard with composite score breakdown.
+- Mood history with timeline and charts.
+- Mindfulness coach with personalized exercises (breathing, grounding, exam anxiety, sleep prep).
+- Motivation center with affirmations and encouragement.
+- Burnout risk monitor with early warning and recovery recommendations.
+- AI companion chat with conversation memory.
+- Journal encryption at rest (AES-256-GCM).
+- Responsive UI, dark mode toggle, accessibility.
 
 ---
 
@@ -71,7 +76,7 @@ Mandatory checklist:
 - [ ] Environment variables documented in `.env.example`, gitignored in `.env.local`.
 - [ ] No secrets in commits, logs, or client-side code.
 - [ ] Rate-limit or guard expensive API routes when feasible.
-- [ ] Allergies and dietary rules enforced in validation layer, not UI-only.
+- [ ] User ID header validated against request body; UUID format enforced on query params.
 
 ---
 
@@ -84,11 +89,11 @@ Requirements:
 - Memoize expensive pure functions; use React `useCallback`/`useMemo` for stable handlers.
 - Lazy-load heavy components when appropriate.
 - Do not sacrifice readability for micro-optimizations.
-- Auto budget-optimization should not loop indefinitely — cap retries.
+- Pattern insights generated on-demand (POST), not on every page load.
 
 Mandatory checklist:
-- [ ] Single OpenAI call per generation unless explicit regenerate/optimize.
-- [ ] Budget totals recalculated once server-side, not duplicated client-side.
+- [ ] Insights GET avoids costly AI calls; pattern analysis via explicit POST only.
+- [ ] Wellness scores computed once server-side, not duplicated client-side.
 - [ ] No N+1 patterns or redundant schema parsing.
 - [ ] Bundle size kept lean — tree-shake unused imports.
 - [ ] Loading states prevent duplicate submissions.
@@ -100,20 +105,20 @@ Mandatory checklist:
 Testing is **required**, not optional. A solution without tests is incomplete.
 
 Requirements:
-- Add unit tests for all critical pure logic (validators, budget utils, prompt builders, parsers).
+- Add unit tests for all critical pure logic (validators, wellness utils, prompt builders, parsers).
 - Add integration tests for API routes (valid request, invalid request, missing env key).
 - Add component tests for form validation and key UI states when feasible.
 - Cover happy path, edge cases, and error paths.
 - Tests must be runnable via `npm test` and pass in CI.
 - Prefer Vitest + React Testing Library for Next.js projects.
-- Mock external services (OpenAI) in tests — never call live APIs in unit tests.
+- Mock external services (OpenAI, MongoDB) in tests — never call live APIs in unit tests.
 - Aim for meaningful coverage of business logic, not trivial getters.
 
 Mandatory checklist:
 - [ ] Zod schemas tested with valid and invalid inputs.
-- [ ] `computeBudgetStatus`, `recalculateBudgetAnalysis`, `validateDietaryAndAllergies` have unit tests.
-- [ ] API route returns 400 on bad input, 500 on service failure (mocked).
-- [ ] At least one component test (form submit, error state, or results render).
+- [ ] `computeWellnessScore`, `computeBurnoutRiskLevel`, `computeStudyStreak` have unit tests.
+- [ ] API route returns 422 on bad input, 500 on service failure (mocked).
+- [ ] At least one component test (loading state, error state, or results render).
 - [ ] `npm test` script exists in `package.json` and all tests pass.
 
 When adding or changing logic, **always add or update tests in the same change**.
@@ -136,7 +141,7 @@ Requirements:
 Mandatory checklist:
 - [ ] Page has one `h1`; sections have accessible names (`aria-label` or headings).
 - [ ] Loading/error/empty states announce to screen readers.
-- [ ] Dark mode maintains readable contrast.
+- [ ] Dark mode toggle maintains readable contrast.
 - [ ] No keyboard traps; all actions reachable without a mouse.
 
 ---

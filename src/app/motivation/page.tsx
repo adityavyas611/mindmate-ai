@@ -34,21 +34,28 @@ export default function MotivationPage() {
         disabled={mutation.isPending}
         size="lg"
         className="w-full"
+        aria-busy={mutation.isPending}
       >
         {mutation.isPending ? (
           "Generating motivation..."
         ) : (
           <>
-            <RefreshCw className="mr-2 h-4 w-4" />
+            <RefreshCw className="mr-2 h-4 w-4" aria-hidden="true" />
             Refresh Motivation
           </>
         )}
       </Button>
 
+      {mutation.error && (
+        <p className="text-sm text-red-600" role="alert">
+          {mutation.error instanceof Error ? mutation.error.message : "Something went wrong"}
+        </p>
+      )}
+
       {content && (
-        <div className="space-y-4">
+        <div className="space-y-4" aria-live="polite">
           <MotivationCard
-            icon={<Sparkles className="h-5 w-5 text-amber-500" />}
+            icon={<Sparkles className="h-5 w-5 text-amber-500" aria-hidden="true" />}
             title="Today's Affirmation"
             content={content.affirmation}
             highlight
@@ -74,8 +81,8 @@ export default function MotivationPage() {
 
       {!content && !mutation.isPending && (
         <Card className="border-dashed">
-          <CardContent className="py-12 text-center">
-            <Sparkles className="mx-auto h-10 w-10 text-violet-300" />
+          <CardContent className="py-12 text-center" role="status" aria-live="polite">
+            <Sparkles className="mx-auto h-10 w-10 text-violet-300" aria-hidden="true" />
             <p className="mt-4 text-sm text-zinc-500">
               Tap refresh to receive personalized motivation based on your journey.
             </p>

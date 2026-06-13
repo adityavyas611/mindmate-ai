@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -19,15 +19,11 @@ import {
 import { PageHeader, LoadingState } from "@/components/shared/page-components";
 import { api, useUserId } from "@/hooks/use-user-id";
 import { EXAM_TYPES } from "@/lib/utils";
-import type { AIAnalysis, MindfulnessExercise, MotivationContent } from "@/schemas";
-
-interface CheckInResponse {
-  id: string;
-  analysis: AIAnalysis;
-  mindfulness: MindfulnessExercise;
-  motivation: MotivationContent;
-  createdAt: string;
-}
+import {
+  validateCheckInForm,
+  formatCheckInValidationErrors,
+} from "@/lib/validation/check-in-form";
+import type { CheckInInput } from "@/schemas";
 
 export default function CheckInPage() {
   const userId = useUserId();
@@ -43,21 +39,10 @@ export default function CheckInPage() {
   const [daysRemaining, setDaysRemaining] = useState("90");
   const [confidenceLevel, setConfidenceLevel] = useState([6]);
   const [anxietyLevel, setAnxietyLevel] = useState([5]);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   const mutation = useMutation({
-    mutationFn: () =>
-      api.submitCheckIn(userId!, {
-        userId,
-        journalEntry,
-        moodScore: moodScore[0],
-        energyLevel: energyLevel[0],
-        sleepHours: parseFloat(sleepHours),
-        studyHours: parseFloat(studyHours),
-        examType,
-        daysRemaining: parseInt(daysRemaining, 10),
-        confidenceLevel: confidenceLevel[0],
-        anxietyLevel: anxietyLevel[0],
-      }) as Promise<CheckInResponse>,
+    mutationFn: (input: CheckInInput) => api.submitCheckIn(input.userId, input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["check-ins"] });
       queryClient.invalidateQueries({ queryKey: ["insights"] });
@@ -66,7 +51,54 @@ export default function CheckInPage() {
     },
   });
 
+  const handleSubmit = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!userId) return;
+
+      const result = validateCheckInForm({
+        userId,
+        journalEntry: journalEntry.trim(),
+        moodScore: moodScore[0],
+        energyLevel: energyLevel[0],
+        sleepHours: parseFloat(sleepHours),
+        studyHours: parseFloat(studyHours),
+        examType,
+        daysRemaining: parseInt(daysRemaining, 10),
+        confidenceLevel: confidenceLevel[0],
+        anxietyLevel: anxietyLevel[0],
+      });
+
+      if (!result.success) {
+        setValidationError(formatCheckInValidationErrors(result));
+        return;
+      }
+
+      setValidationError(null);
+      mutation.mutate(result.data);
+    },
+    [
+      userId,
+      journalEntry,
+      moodScore,
+      energyLevel,
+      sleepHours,
+      studyHours,
+      examType,
+      daysRemaining,
+      confidenceLevel,
+      anxietyLevel,
+      mutation,
+    ]
+  );
+
+  const displayError =
+    validationError ??
+    (mutation.error instanceof Error ? mutation.error.message : null);
+
   if (!userId) return <LoadingState message="Initializing your session..." />;
+
+  const errorId = "check-in-error";
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -76,11 +108,10 @@ export default function CheckInPage() {
       />
 
       <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          mutation.mutate();
-        }}
+        onSubmit={handleSubmit}
         className="space-y-6"
+        aria-busy={mutation.isPending}
+        noValidate
       >
         <Card>
           <CardHeader>
@@ -90,13 +121,19 @@ export default function CheckInPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            <Label htmlFor="journal-entry" className="sr-only">
+              Journal entry
+            </Label>
             <Textarea
+              id="journal-entry"
               value={journalEntry}
               onChange={(e) => setJournalEntry(e.target.value)}
               placeholder="Today I felt... I'm worried about... I'm proud that..."
               required
               maxLength={5000}
               className="min-h-[160px]"
+              aria-describedby={displayError ? errorId : undefined}
+              aria-invalid={displayError ? true : undefined}
             />
           </CardContent>
         </Card>
@@ -106,10 +143,10 @@ export default function CheckInPage() {
             <CardTitle>How are you feeling?</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <SliderField label="Mood" value={moodScore} onChange={setMoodScore} low="Low" high="Great" />
-            <SliderField label="Energy Level" value={energyLevel} onChange={setEnergyLevel} />
-            <SliderField label="Confidence" value={confidenceLevel} onChange={setConfidenceLevel} />
-            <SliderField label="Anxiety" value={anxietyLevel} onChange={setAnxietyLevel} low="Calm" high="High" />
+            <SliderField id="mood" label="Mood" value={moodScore} onChange={setMoodScore} low="Low" high="Great" />
+            <SliderField id="energy" label="Energy Level" value={energyLevel} onChange={setEnergyLevel} />
+            <SliderField id="confidence" label="Confidence" value={confidenceLevel} onChange={setConfidenceLevel} />
+            <SliderField id="anxiety" label="Anxiety" value={anxietyLevel} onChange={setAnxietyLevel} low="Calm" high="High" />
           </CardContent>
         </Card>
 
@@ -153,9 +190,9 @@ export default function CheckInPage() {
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">
             <div>
-              <Label>Exam Type</Label>
+              <Label htmlFor="exam-type">Exam Type</Label>
               <Select value={examType} onValueChange={setExamType}>
-                <SelectTrigger>
+                <SelectTrigger id="exam-type" aria-label="Exam type">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -182,9 +219,9 @@ export default function CheckInPage() {
           </CardContent>
         </Card>
 
-        {mutation.error && (
-          <p className="text-sm text-red-600">
-            {mutation.error instanceof Error ? mutation.error.message : "Something went wrong"}
+        {displayError && (
+          <p id={errorId} className="text-sm text-red-600" role="alert">
+            {displayError}
           </p>
         )}
 
@@ -197,12 +234,14 @@ export default function CheckInPage() {
 }
 
 function SliderField({
+  id,
   label,
   value,
   onChange,
   low = "1",
   high = "10",
 }: {
+  id: string;
   label: string;
   value: number[];
   onChange: (v: number[]) => void;
@@ -212,10 +251,23 @@ function SliderField({
   return (
     <div>
       <div className="mb-2 flex items-center justify-between">
-        <Label>{label}</Label>
-        <span className="text-sm font-semibold text-violet-600">{value[0]}/10</span>
+        <Label htmlFor={id}>{label}</Label>
+        <span className="text-sm font-semibold text-violet-600" aria-hidden="true">
+          {value[0]}/10
+        </span>
       </div>
-      <Slider min={1} max={10} step={1} value={value} onValueChange={onChange} />
+      <Slider
+        id={id}
+        min={1}
+        max={10}
+        step={1}
+        value={value}
+        onValueChange={onChange}
+        aria-valuemin={1}
+        aria-valuemax={10}
+        aria-valuenow={value[0]}
+        aria-label={`${label}: ${value[0]} out of 10`}
+      />
       <div className="mt-1 flex justify-between text-xs text-zinc-400">
         <span>{low}</span>
         <span>{high}</span>

@@ -45,7 +45,7 @@ export default function MindfulnessPage() {
         <CardHeader>
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-violet-600 text-white">
-              <Wind className="h-5 w-5" />
+              <Wind className="h-5 w-5" aria-hidden="true" />
             </div>
             <div>
               <CardTitle>Generate Exercise</CardTitle>
@@ -60,18 +60,19 @@ export default function MindfulnessPage() {
             onClick={() => mutation.mutate()}
             disabled={mutation.isPending}
             className="w-full"
+            aria-busy={mutation.isPending}
           >
             {mutation.isPending ? (
               "Creating your exercise..."
             ) : (
               <>
-                <RefreshCw className="mr-2 h-4 w-4" />
+                <RefreshCw className="mr-2 h-4 w-4" aria-hidden="true" />
                 Get Personalized Exercise
               </>
             )}
           </Button>
           {mutation.error && (
-            <p className="mt-3 text-sm text-red-600">
+            <p className="mt-3 text-sm text-red-600" role="alert">
               {mutation.error instanceof Error &&
               mutation.error.message.includes("check-in")
                 ? "Complete a check-in first to unlock personalized exercises."
@@ -94,7 +95,7 @@ export default function MindfulnessPage() {
       )}
 
       {exercise && (
-        <Card>
+        <Card aria-live="polite">
           <CardHeader>
             <div className="flex flex-wrap items-center gap-2">
               <CardTitle>{exercise.title}</CardTitle>

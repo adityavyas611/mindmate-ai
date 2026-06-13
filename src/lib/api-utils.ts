@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { ZodError } from "zod";
+import { ZodError, z } from "zod";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export function jsonOk<T>(data: T, status = 200) {
   return NextResponse.json({ success: true, data }, { status });
@@ -14,11 +15,52 @@ export function handleApiError(error: unknown) {
     return jsonError(error.errors.map((e) => e.message).join(", "), 422);
   }
   console.error("[API Error]", error);
-  const message =
-    error instanceof Error ? error.message : "An unexpected error occurred";
-  return jsonError(message, 500);
+  return jsonError("An unexpected error occurred. Please try again later.", 500);
 }
 
 export function validateUserIdHeader(request: Request): string | null {
   return request.headers.get("x-user-id");
+}
+
+const userIdParamSchema = z.string().uuid();
+
+export function parseUserIdParam(userId: string | null) {
+  if (!userId) {
+    return { error: jsonError("userId is required") };
+  }
+  const parsed = userIdParamSchema.safeParse(userId);
+  if (!parsed.success) {
+    return { error: jsonError("Invalid userId format") };
+  }
+  return { userId: parsed.data };
+}
+
+export function validateUserIdAccess(
+  headerUserId: string | null,
+  userId: string
+) {
+  if (headerUserId && headerUserId !== userId) {
+    return jsonError("User ID mismatch", 403);
+  }
+  return null;
+}
+
+export function applyRateLimit(
+  request: Request,
+  routeKey: string,
+  limit = 10,
+  windowMs = 60_000
+) {
+  const ip =
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    request.headers.get("x-real-ip") ??
+    "unknown";
+  const result = checkRateLimit(`${routeKey}:${ip}`, limit, windowMs);
+  if (!result.allowed) {
+    return jsonError(
+      `Too many requests. Try again in ${result.retryAfterSeconds}s.`,
+      429
+    );
+  }
+  return null;
 }

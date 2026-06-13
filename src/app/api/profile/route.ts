@@ -2,12 +2,23 @@ import { NextRequest } from "next/server";
 import { connectDB } from "@/lib/db/mongodb";
 import { profileSchema } from "@/schemas";
 import { UserProfile } from "@/models";
-import { jsonOk, jsonError, handleApiError, validateUserIdHeader } from "@/lib/api-utils";
+import {
+  jsonOk,
+  handleApiError,
+  validateUserIdHeader,
+  parseUserIdParam,
+  validateUserIdAccess,
+} from "@/lib/api-utils";
 
 export async function GET(request: NextRequest) {
   try {
-    const userId = request.nextUrl.searchParams.get("userId");
-    if (!userId) return jsonError("userId is required");
+    const parsed = parseUserIdParam(request.nextUrl.searchParams.get("userId"));
+    if ("error" in parsed && parsed.error) return parsed.error;
+    const userId = parsed.userId!;
+
+    const headerUserId = validateUserIdHeader(request);
+    const accessError = validateUserIdAccess(headerUserId, userId);
+    if (accessError) return accessError;
 
     await connectDB();
     const profile = await UserProfile.findOne({ userId }).lean();
@@ -23,9 +34,8 @@ export async function PUT(request: NextRequest) {
     const input = profileSchema.parse(body);
 
     const headerUserId = validateUserIdHeader(request);
-    if (headerUserId && headerUserId !== input.userId) {
-      return jsonError("User ID mismatch", 403);
-    }
+    const accessError = validateUserIdAccess(headerUserId, input.userId);
+    if (accessError) return accessError;
 
     await connectDB();
 

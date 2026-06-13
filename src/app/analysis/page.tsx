@@ -13,30 +13,14 @@ import {
 } from "@/components/shared/page-components";
 import { api, useUserId } from "@/hooks/use-user-id";
 import { ESCALATION_MESSAGE, formatDate } from "@/lib/utils";
-import type { AIAnalysis } from "@/schemas";
-
-interface CheckInRecord {
-  id: string;
-  journalEntry: string;
-  analysis?: AIAnalysis;
-  createdAt: string;
-  moodScore: number;
-  anxietyLevel: number;
-  confidenceLevel: number;
-}
-
-function severityVariant(level: string): "success" | "warning" | "danger" | "info" {
-  if (level === "low") return "success";
-  if (level === "moderate") return "warning";
-  return "danger";
-}
+import { scoreBadgeVariant, severityBadgeVariant } from "@/types/api";
 
 export default function AnalysisPage() {
   const userId = useUserId();
 
   const { data, isLoading } = useQuery({
     queryKey: ["check-ins", userId],
-    queryFn: () => api.getCheckIns(userId!) as Promise<CheckInRecord[]>,
+    queryFn: () => api.getCheckIns(userId!),
     enabled: !!userId,
   });
 
@@ -90,7 +74,7 @@ export default function AnalysisPage() {
         />
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" role="group" aria-label="Analysis metrics">
         <MetricCard label="Stress" value={analysis.stressLevel} />
         <MetricCard label="Burnout Risk" value={analysis.burnoutRisk} />
         <MetricCard label="Motivation" value={analysis.motivationLevel} />
@@ -154,20 +138,17 @@ export default function AnalysisPage() {
         </CardContent>
       </Card>
 
-      <p className="text-xs text-zinc-500">{analysis.safetyNote}</p>
+      <p className="text-xs text-zinc-500" role="note">
+        {analysis.safetyNote}
+      </p>
     </div>
   );
 }
 
 function MetricCard({ label, value }: { label: string; value: string }) {
-  const isScore = value.includes("/100");
-  const variant = isScore
-    ? parseInt(value) > 70
-      ? "success"
-      : parseInt(value) > 40
-        ? "warning"
-        : "danger"
-    : severityVariant(value);
+  const variant = value.includes("/100")
+    ? scoreBadgeVariant(value)
+    : severityBadgeVariant(value);
 
   return (
     <Card>
@@ -192,7 +173,7 @@ function InsightList({ title, items }: { title: string; items: string[] }) {
         <ul className="space-y-2">
           {items.map((item, i) => (
             <li key={i} className="flex gap-2 text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
-              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-violet-500" />
+              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-violet-500" aria-hidden="true" />
               {item}
             </li>
           ))}

@@ -14,19 +14,8 @@ import {
 } from "@/components/shared/page-components";
 import { api, useUserId } from "@/hooks/use-user-id";
 import { ESCALATION_MESSAGE } from "@/lib/utils";
+import { severityBadgeVariant } from "@/types/api";
 import { AlertTriangle, Shield, Activity } from "lucide-react";
-
-interface BurnoutData {
-  burnoutLevel: string;
-  wellnessScore: { overall: number; stress: number; sleep: number; consistency: number };
-  latestAnalysis?: {
-    burnoutRisk?: string;
-    stressLevel?: string;
-    earlyWarning?: { triggered: boolean; severity: string; message: string };
-    copingStrategies?: string[];
-  };
-  totalCheckIns: number;
-}
 
 function riskScore(level: string): number {
   const map: Record<string, number> = {
@@ -38,18 +27,12 @@ function riskScore(level: string): number {
   return map[level] ?? 30;
 }
 
-function riskVariant(level: string): "success" | "warning" | "danger" {
-  if (level === "low") return "success";
-  if (level === "moderate") return "warning";
-  return "danger";
-}
-
 export default function BurnoutPage() {
   const userId = useUserId();
 
   const { data, isLoading } = useQuery({
     queryKey: ["insights", userId],
-    queryFn: () => api.getInsights(userId!) as Promise<BurnoutData>,
+    queryFn: () => api.getInsights(userId!),
     enabled: !!userId,
   });
 
@@ -102,18 +85,18 @@ export default function BurnoutPage() {
         <CardHeader>
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-violet-100 dark:bg-violet-900">
-              <AlertTriangle className="h-6 w-6 text-violet-600" />
+              <AlertTriangle className="h-6 w-6 text-violet-600" aria-hidden="true" />
             </div>
             <div>
               <CardTitle>Current Burnout Risk</CardTitle>
-              <Badge variant={riskVariant(burnoutLevel)} className="mt-1 capitalize">
+              <Badge variant={severityBadgeVariant(burnoutLevel)} className="mt-1 capitalize">
                 {burnoutLevel}
               </Badge>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          <Progress value={score} className="h-4" />
+          <Progress value={score} className="h-4" aria-label={`Burnout risk level ${burnoutLevel}`} />
           <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
             Based on your recent anxiety levels, energy, sleep, and study patterns over the last 7 check-ins.
           </p>
@@ -158,7 +141,7 @@ export default function BurnoutPage() {
             <ul className="space-y-2">
               {latestAnalysis.copingStrategies.map((s, i) => (
                 <li key={i} className="flex gap-2 text-sm leading-relaxed">
-                  <span className="text-violet-600">✓</span>
+                  <span className="text-violet-600" aria-hidden="true">✓</span>
                   {s}
                 </li>
               ))}
@@ -191,7 +174,7 @@ function RiskFactorCard({
   return (
     <Card>
       <CardContent className="pt-6">
-        <Icon className="mb-2 h-5 w-5 text-violet-600" />
+        <Icon className="mb-2 h-5 w-5 text-violet-600" aria-hidden="true" />
         <p className="text-xs text-zinc-500">{label}</p>
         <p className="mt-1 font-semibold capitalize">{value}</p>
       </CardContent>
@@ -206,7 +189,7 @@ function FactorBar({ label, value }: { label: string; value: number }) {
         <span>{label}</span>
         <span>{value}/100</span>
       </div>
-      <Progress value={value} />
+      <Progress value={value} aria-label={`${label} ${value} out of 100`} />
     </div>
   );
 }

@@ -64,10 +64,7 @@ async function callOpenAI(
   return content;
 }
 
-function parseJSON<T>(raw: string): T {
-  const cleaned = raw.replace(/^```json\s*/i, "").replace(/```\s*$/, "").trim();
-  return JSON.parse(cleaned) as T;
-}
+import { parseAIResponse } from "@/lib/ai/parse-response";
 
 const SAFETY_SYSTEM_PROMPT = `You are MindMate AI, an empathetic wellness companion for students preparing for high-stakes exams (JEE, NEET, UPSC, CAT, GATE, CUET, Board Exams).
 
@@ -160,7 +157,7 @@ Identify cross-entry patterns when history exists (e.g., "stress spikes Sunday e
     { role: "user", content: prompt },
   ]);
 
-  const parsed = parseJSON<unknown>(raw);
+  const parsed = parseAIResponse<unknown>(raw);
   return aiAnalysisSchema.parse(parsed);
 }
 
@@ -190,7 +187,7 @@ Choose exercise type and duration based on their immediate needs.`;
     { role: "user", content: prompt },
   ], { temperature: 0.8 });
 
-  return mindfulnessExerciseSchema.parse(parseJSON(raw));
+  return mindfulnessExerciseSchema.parse(parseAIResponse(raw));
 }
 
 export async function generateMotivation(
@@ -219,7 +216,7 @@ Be specific and genuine — reference their actual consistency and effort.`;
     { role: "user", content: prompt },
   ], { temperature: 0.85 });
 
-  return motivationSchema.parse(parseJSON(raw));
+  return motivationSchema.parse(parseAIResponse(raw));
 }
 
 export async function generatePatternInsights(
@@ -250,7 +247,7 @@ Discover study-wellness correlations (sleep vs mood, study hours vs stress, conf
     { role: "user", content: prompt },
   ]);
 
-  return patternInsightsSchema.parse(parseJSON(raw));
+  return patternInsightsSchema.parse(parseAIResponse(raw));
 }
 
 export async function chatWithCoach(

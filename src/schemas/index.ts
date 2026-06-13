@@ -1,9 +1,12 @@
 import { z } from "zod";
 import { EXAM_TYPES } from "@/lib/utils";
 
+const trimmedString = (min: number, max: number) =>
+  z.string().trim().min(min).max(max);
+
 export const checkInSchema = z.object({
   userId: z.string().uuid(),
-  journalEntry: z.string().min(1).max(5000),
+  journalEntry: trimmedString(1, 5000),
   moodScore: z.number().int().min(1).max(10),
   energyLevel: z.number().int().min(1).max(10),
   sleepHours: z.number().min(0).max(24),
@@ -22,15 +25,18 @@ export const userIdSchema = z.object({
 
 export const chatMessageSchema = z.object({
   userId: z.string().uuid(),
-  message: z.string().min(1).max(2000),
+  message: trimmedString(1, 2000),
 });
 
 export const profileSchema = z.object({
   userId: z.string().uuid(),
   examType: z.enum(EXAM_TYPES).optional(),
-  examGoal: z.string().max(500).optional(),
-  motivationalPreferences: z.string().max(500).optional(),
-  knownStressTriggers: z.array(z.string().max(200)).max(20).optional(),
+  examGoal: z.string().trim().max(500).optional(),
+  motivationalPreferences: z.string().trim().max(500).optional(),
+  knownStressTriggers: z
+    .array(z.string().trim().min(1).max(200))
+    .max(20)
+    .optional(),
 });
 
 export const aiAnalysisSchema = z.object({
@@ -117,3 +123,4 @@ export const patternInsightsSchema = z.object({
 });
 
 export type PatternInsights = z.infer<typeof patternInsightsSchema>;
+export type ProfileInput = z.infer<typeof profileSchema>;

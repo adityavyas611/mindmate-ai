@@ -22,7 +22,7 @@ export function StatCard({
     <Card className={cn("", className)}>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-sm font-medium text-zinc-500">{title}</CardTitle>
-        <Icon className="h-4 w-4 text-violet-600" />
+        <Icon className="h-4 w-4 text-violet-600" aria-hidden="true" />
       </CardHeader>
       <CardContent>
         <p className="text-2xl font-bold text-violet-900 dark:text-violet-100">{value}</p>
@@ -42,21 +42,29 @@ export function PageHeader({
   description?: string;
 }) {
   return (
-    <div className="mb-8">
+    <header className="mb-8">
       <h1 className="text-2xl font-bold tracking-tight text-violet-950 dark:text-violet-50">
         {title}
       </h1>
       {description && (
         <p className="mt-1 text-zinc-600 dark:text-zinc-400">{description}</p>
       )}
-    </div>
+    </header>
   );
 }
 
 export function LoadingState({ message = "Loading..." }: { message?: string }) {
   return (
-    <div className="flex flex-col items-center justify-center py-20">
-      <div className="h-8 w-8 animate-spin rounded-full border-2 border-violet-600 border-t-transparent" />
+    <div
+      className="flex flex-col items-center justify-center py-20"
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+    >
+      <div
+        className="h-8 w-8 animate-spin rounded-full border-2 border-violet-600 border-t-transparent motion-reduce:animate-none motion-reduce:border-violet-600"
+        aria-hidden="true"
+      />
       <p className="mt-4 text-sm text-zinc-500">{message}</p>
     </div>
   );
@@ -73,7 +81,11 @@ export function EmptyState({
 }) {
   return (
     <Card className="border-dashed">
-      <CardContent className="flex flex-col items-center py-12 text-center">
+      <CardContent
+        className="flex flex-col items-center py-12 text-center"
+        role="status"
+        aria-live="polite"
+      >
         <p className="text-lg font-medium text-violet-900 dark:text-violet-100">{title}</p>
         <p className="mt-2 max-w-md text-sm text-zinc-500">{description}</p>
         {action && <div className="mt-6">{action}</div>}
@@ -96,7 +108,10 @@ export function AlertBanner({
   };
 
   return (
-    <div className={cn("rounded-xl border p-4 text-sm leading-relaxed", styles[severity])}>
+    <div
+      className={cn("rounded-xl border p-4 text-sm leading-relaxed", styles[severity])}
+      role="alert"
+    >
       {message}
     </div>
   );

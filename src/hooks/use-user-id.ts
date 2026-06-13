@@ -1,23 +1,31 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { v4 as uuidv4 } from "uuid";
+import type { CheckInInput, MotivationContent, MindfulnessExercise, PatternInsights, ProfileInput } from "@/schemas";
+import type {
+  CheckInRecord,
+  CheckInSubmitResponse,
+  InsightsResponse,
+} from "@/types/api";
 
 const USER_ID_KEY = "mindmate-user-id";
 
+function getUserId(): string {
+  let id = localStorage.getItem(USER_ID_KEY);
+  if (!id) {
+    id = uuidv4();
+    localStorage.setItem(USER_ID_KEY, id);
+  }
+  return id;
+}
+
+function subscribe(): () => void {
+  return () => {};
+}
+
 export function useUserId(): string | null {
-  const [userId, setUserId] = useState<string | null>(null);
-
-  useEffect(() => {
-    let id = localStorage.getItem(USER_ID_KEY);
-    if (!id) {
-      id = uuidv4();
-      localStorage.setItem(USER_ID_KEY, id);
-    }
-    setUserId(id);
-  }, []);
-
-  return userId;
+  return useSyncExternalStore(subscribe, getUserId, () => null);
 }
 
 export function getApiHeaders(userId: string): HeadersInit {
@@ -54,32 +62,32 @@ async function apiFetch<T>(
 }
 
 export const api = {
-  submitCheckIn: (userId: string, data: Record<string, unknown>) =>
-    apiFetch("/api/check-in", userId, {
+  submitCheckIn: (userId: string, data: CheckInInput) =>
+    apiFetch<CheckInSubmitResponse>("/api/check-in", userId, {
       method: "POST",
       body: JSON.stringify(data),
     }),
 
   getCheckIns: (userId: string, limit = 30) =>
-    apiFetch(`/api/check-in?userId=${userId}&limit=${limit}`, userId),
+    apiFetch<CheckInRecord[]>(`/api/check-in?userId=${userId}&limit=${limit}`, userId),
 
   getInsights: (userId: string) =>
-    apiFetch(`/api/insights?userId=${userId}`, userId),
+    apiFetch<InsightsResponse>(`/api/insights?userId=${userId}`, userId),
 
   generatePatternInsights: (userId: string) =>
-    apiFetch("/api/insights", userId, {
+    apiFetch<PatternInsights>("/api/insights", userId, {
       method: "POST",
       body: JSON.stringify({ userId }),
     }),
 
   generateMindfulness: (userId: string) =>
-    apiFetch("/api/mindfulness", userId, {
+    apiFetch<MindfulnessExercise>("/api/mindfulness", userId, {
       method: "POST",
       body: JSON.stringify({ userId }),
     }),
 
   generateMotivation: (userId: string) =>
-    apiFetch("/api/motivation", userId, {
+    apiFetch<MotivationContent>("/api/motivation", userId, {
       method: "POST",
       body: JSON.stringify({ userId }),
     }),
@@ -91,12 +99,15 @@ export const api = {
     }),
 
   getChatHistory: (userId: string) =>
-    apiFetch(`/api/chat?userId=${userId}`, userId),
+    apiFetch<Array<{ id: string; role: "user" | "assistant"; content: string; createdAt: string }>>(
+      `/api/chat?userId=${userId}`,
+      userId
+    ),
 
   getProfile: (userId: string) =>
     apiFetch(`/api/profile?userId=${userId}`, userId),
 
-  updateProfile: (userId: string, data: Record<string, unknown>) =>
+  updateProfile: (userId: string, data: Omit<ProfileInput, "userId">) =>
     apiFetch("/api/profile", userId, {
       method: "PUT",
       body: JSON.stringify({ userId, ...data }),

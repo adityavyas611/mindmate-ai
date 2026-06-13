@@ -18,6 +18,7 @@ import {
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { SAFETY_DISCLAIMER } from "@/lib/utils";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 
 const navItems = [
   { href: "/check-in", label: "Daily Check-In", icon: PenLine },
@@ -42,32 +43,35 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           "fixed inset-y-0 left-0 z-50 w-64 transform border-r border-violet-100 bg-white/95 backdrop-blur dark:border-violet-900/50 dark:bg-zinc-950/95 transition-transform lg:translate-x-0",
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
+        aria-label="Main navigation"
       >
         <div className="flex h-full flex-col">
           <div className="flex items-center gap-2 border-b border-violet-100 px-6 py-5 dark:border-violet-900/50">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-600 text-white">
-              <Brain className="h-5 w-5" />
+              <Brain className="h-5 w-5" aria-hidden="true" />
             </div>
             <div>
               <p className="font-semibold text-violet-900 dark:text-violet-100">MindMate AI</p>
               <p className="text-xs text-zinc-500">Your exam wellness companion</p>
             </div>
             <button
+              type="button"
               className="ml-auto lg:hidden"
               onClick={() => setMobileOpen(false)}
               aria-label="Close menu"
             >
-              <X className="h-5 w-5" />
+              <X className="h-5 w-5" aria-hidden="true" />
             </button>
           </div>
 
-          <nav className="flex-1 overflow-y-auto p-4">
+          <nav className="flex-1 overflow-y-auto p-4" aria-label="App sections">
             <ul className="space-y-1">
               {navItems.map(({ href, label, icon: Icon }) => (
                 <li key={href}>
                   <Link
                     href={href}
                     onClick={() => setMobileOpen(false)}
+                    aria-current={pathname === href ? "page" : undefined}
                     className={cn(
                       "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                       pathname === href
@@ -75,7 +79,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         : "text-zinc-600 hover:bg-violet-50 hover:text-violet-900 dark:text-zinc-400 dark:hover:bg-violet-950 dark:hover:text-violet-100"
                     )}
                   >
-                    <Icon className="h-4 w-4 shrink-0" />
+                    <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
                     {label}
                   </Link>
                 </li>
@@ -93,21 +97,26 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div
           className="fixed inset-0 z-40 bg-black/30 lg:hidden"
           onClick={() => setMobileOpen(false)}
+          aria-hidden="true"
         />
       )}
 
       <div className="flex flex-1 flex-col lg:pl-64">
         <header className="sticky top-0 z-30 flex items-center gap-4 border-b border-violet-100 bg-white/80 px-4 py-3 backdrop-blur dark:border-violet-900/50 dark:bg-zinc-950/80 lg:px-8">
           <button
+            type="button"
             className="lg:hidden"
             onClick={() => setMobileOpen(true)}
             aria-label="Open menu"
           >
-            <Menu className="h-5 w-5" />
+            <Menu className="h-5 w-5" aria-hidden="true" />
           </button>
           <Link href="/" className="font-semibold text-violet-900 dark:text-violet-100 lg:hidden">
             MindMate AI
           </Link>
+          <div className="ml-auto">
+            <ThemeToggle />
+          </div>
         </header>
 
         <main className="flex-1 p-4 lg:p-8">{children}</main>

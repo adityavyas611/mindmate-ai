@@ -8,7 +8,14 @@ import {
 } from "@/lib/ai/openai";
 import { checkInSchema } from "@/schemas";
 import { CheckIn, UserProfile } from "@/models";
-import { jsonOk, jsonError, handleApiError, validateUserIdHeader } from "@/lib/api-utils";
+import {
+  jsonOk,
+  handleApiError,
+  validateUserIdHeader,
+  parseUserIdParam,
+  validateUserIdAccess,
+  applyRateLimit,
+} from "@/lib/api-utils";
 import { getDayOfWeek } from "@/lib/utils";
 import {
   computeStudyStreak,
@@ -17,13 +24,15 @@ import {
 
 export async function POST(request: NextRequest) {
   try {
+    const rateLimited = applyRateLimit(request, "check-in-post", 5, 60_000);
+    if (rateLimited) return rateLimited;
+
     const headerUserId = validateUserIdHeader(request);
     const body = await request.json();
     const input = checkInSchema.parse(body);
 
-    if (headerUserId && headerUserId !== input.userId) {
-      return jsonError("User ID mismatch", 403);
-    }
+    const accessError = validateUserIdAccess(headerUserId, input.userId);
+    if (accessError) return accessError;
 
     await connectDB();
 
@@ -96,13 +105,13 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const userId = request.nextUrl.searchParams.get("userId");
-    if (!userId) return jsonError("userId is required");
+    const parsed = parseUserIdParam(request.nextUrl.searchParams.get("userId"));
+    if ("error" in parsed && parsed.error) return parsed.error;
+    const userId = parsed.userId!;
 
     const headerUserId = validateUserIdHeader(request);
-    if (headerUserId && headerUserId !== userId) {
-      return jsonError("User ID mismatch", 403);
-    }
+    const accessError = validateUserIdAccess(headerUserId, userId);
+    if (accessError) return accessError;
 
     await connectDB();
 

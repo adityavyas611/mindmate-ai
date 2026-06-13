@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -10,31 +11,24 @@ import {
   LoadingState,
   EmptyState,
 } from "@/components/shared/page-components";
-import { MoodTrendChart } from "@/components/charts/trend-charts";
+import { MoodTrendChart } from "@/components/charts/lazy-charts";
 import { api, useUserId } from "@/hooks/use-user-id";
+import { buildMoodChartDataFromCheckIns } from "@/lib/chart-data";
 import { formatDate } from "@/lib/utils";
-
-interface CheckInRecord {
-  id: string;
-  journalEntry: string;
-  moodScore: number;
-  energyLevel: number;
-  sleepHours: number;
-  studyHours: number;
-  confidenceLevel: number;
-  anxietyLevel: number;
-  examType: string;
-  createdAt: string;
-}
 
 export default function MoodHistoryPage() {
   const userId = useUserId();
 
   const { data, isLoading } = useQuery({
     queryKey: ["check-ins", userId],
-    queryFn: () => api.getCheckIns(userId!) as Promise<CheckInRecord[]>,
+    queryFn: () => api.getCheckIns(userId!),
     enabled: !!userId,
   });
+
+  const chartData = useMemo(
+    () => (data ? buildMoodChartDataFromCheckIns(data, formatDate) : []),
+    [data]
+  );
 
   if (!userId || isLoading) return <LoadingState message="Loading mood history..." />;
 
@@ -55,16 +49,6 @@ export default function MoodHistoryPage() {
     );
   }
 
-  const chartData = [...data]
-    .reverse()
-    .map((c) => ({
-      date: formatDate(c.createdAt),
-      mood: c.moodScore,
-      anxiety: c.anxietyLevel,
-      confidence: c.confidenceLevel,
-      energy: c.energyLevel,
-    }));
-
   return (
     <div className="space-y-6">
       <PageHeader
@@ -72,16 +56,18 @@ export default function MoodHistoryPage() {
         description={`${data.length} check-in${data.length !== 1 ? "s" : ""} recorded`}
       />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Trend Overview</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <MoodTrendChart data={chartData} />
-        </CardContent>
-      </Card>
+      <section aria-label="Mood trend chart">
+        <Card>
+          <CardHeader>
+            <CardTitle>Trend Overview</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <MoodTrendChart data={chartData} />
+          </CardContent>
+        </Card>
+      </section>
 
-      <div className="space-y-4">
+      <section aria-label="Check-in history" className="space-y-4">
         {data.map((entry) => (
           <Card key={entry.id}>
             <CardHeader className="pb-2">
@@ -105,7 +91,7 @@ export default function MoodHistoryPage() {
             </CardContent>
           </Card>
         ))}
-      </div>
+      </section>
     </div>
   );
 }

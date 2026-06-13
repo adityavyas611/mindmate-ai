@@ -3,23 +3,32 @@ import { connectDB } from "@/lib/db/mongodb";
 import { generatePatternInsights } from "@/lib/ai/openai";
 import { userIdSchema } from "@/schemas";
 import { CheckIn } from "@/models";
-import { jsonOk, jsonError, handleApiError, validateUserIdHeader } from "@/lib/api-utils";
+import {
+  jsonOk,
+  jsonError,
+  handleApiError,
+  validateUserIdHeader,
+  parseUserIdParam,
+  validateUserIdAccess,
+  applyRateLimit,
+} from "@/lib/api-utils";
 import {
   computeWellnessScore,
   computeBurnoutRiskLevel,
   computeLocalTrends,
   mapEntriesForAI,
 } from "@/lib/wellness";
+import { buildChartDataFromCheckIns } from "@/lib/chart-data";
 
 export async function GET(request: NextRequest) {
   try {
-    const userId = request.nextUrl.searchParams.get("userId");
-    if (!userId) return jsonError("userId is required");
+    const parsed = parseUserIdParam(request.nextUrl.searchParams.get("userId"));
+    if ("error" in parsed && parsed.error) return parsed.error;
+    const userId = parsed.userId!;
 
     const headerUserId = validateUserIdHeader(request);
-    if (headerUserId && headerUserId !== userId) {
-      return jsonError("User ID mismatch", 403);
-    }
+    const accessError = validateUserIdAccess(headerUserId, userId);
+    if (accessError) return accessError;
 
     await connectDB();
 
@@ -45,27 +54,20 @@ export async function GET(request: NextRequest) {
     const localTrends = computeLocalTrends(entries);
 
     const latestAnalysis = checkIns[0]?.analysis ?? null;
-
-    // Pattern insights are generated on-demand via POST to avoid costly AI calls on every page load
     const patternInsights = null;
 
-    const chartData = checkIns
-      .slice()
-      .reverse()
-      .map((c) => ({
-        date: new Date(c.createdAt).toLocaleDateString("en-IN", {
-          month: "short",
-          day: "numeric",
-        }),
-        mood: c.moodScore,
-        anxiety: c.anxietyLevel,
-        confidence: c.confidenceLevel,
-        energy: c.energyLevel,
-        sleep: c.sleepHours,
-        study: c.studyHours,
-        wellnessScore: (c.analysis as { wellnessScore?: number } | undefined)?.wellnessScore ?? null,
-        stressPredictor: (c.analysis as { stressPredictorScore?: number } | undefined)?.stressPredictorScore ?? null,
-      }));
+    const chartData = buildChartDataFromCheckIns(
+      checkIns.map((c) => ({
+        createdAt: c.createdAt,
+        moodScore: c.moodScore,
+        anxietyLevel: c.anxietyLevel,
+        confidenceLevel: c.confidenceLevel,
+        energyLevel: c.energyLevel,
+        sleepHours: c.sleepHours,
+        studyHours: c.studyHours,
+        analysis: c.analysis as { wellnessScore?: number; stressPredictorScore?: number } | undefined,
+      }))
+    );
 
     return jsonOk({
       wellnessScore,
@@ -83,13 +85,15 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const rateLimited = applyRateLimit(request, "insights-post", 5, 60_000);
+    if (rateLimited) return rateLimited;
+
     const body = await request.json();
     const { userId } = userIdSchema.parse(body);
 
     const headerUserId = validateUserIdHeader(request);
-    if (headerUserId && headerUserId !== userId) {
-      return jsonError("User ID mismatch", 403);
-    }
+    const accessError = validateUserIdAccess(headerUserId, userId);
+    if (accessError) return accessError;
 
     await connectDB();
 
